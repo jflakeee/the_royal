@@ -1,0 +1,5 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');const C=globalThis.RoyalCore;
+function s(type){return C.migrate({city:1,stock:{},minions:[{x:415,y:265,job:null}],objects:[{x:80,y:80,type,amount:1}],queue:[]})}
+test('each resource has a distinct configured respawn time',()=>{assert.deepEqual(C.RESPAWN_SECONDS,[12,20,9,14]);for(let type=0;type<4;type++){let state=s(type);assert.equal(C.harvest(state,{x:80,y:80,type}),true);assert.equal(state.objects[0].respawnDelay,C.RESPAWN_SECONDS[type])}});
+test('resource returns with appearance animation and animation decays',()=>{let state=s(2);C.harvest(state,{x:80,y:80,type:2});C.replenish(state,9,()=>.9);assert.equal(state.objects[0].amount,1);assert.equal(state.objects[0].appear,1);C.replenish(state,.4);assert.ok(Math.abs(state.objects[0].appear-.6)<.0001);C.replenish(state,1);assert.equal(state.objects[0].appear,0)});
+test('hidden resource does not render as active until respawn delay',()=>{let state=s(1);C.harvest(state,{x:80,y:80,type:1});C.replenish(state,19,()=>.9);assert.equal(state.objects[0].amount,0)});
