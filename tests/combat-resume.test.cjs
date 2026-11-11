@@ -1,0 +1,5 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');require('../animal-ai.js');const C=globalThis.RoyalCore,A=globalThis.RoyalAnimals;
+function worker(){return {id:'m',x:100,y:100,hp:100,maxHp:100,status:'healthy',role:'general',job:{x:200,y:200,type:0,phase:'travel',progress:0,auto:true}}}
+test('animal defense pauses automatic gather job',()=>{let m=worker(),s={minions:[m],animals:[{id:'w',type:'wolf',x:100,y:100,homeX:100,homeY:100,hp:60,state:'chase',targetId:'m',cooldown:0}],stock:{meat:0}};A.tick(s,.1,()=>.9);assert.equal(m.job.kind,'combat');assert.equal(m.pausedJob.type,0)});
+test('injured worker cannot resume paused gathering until healed',()=>{let m=worker();m.job=null;m.pausedJob={x:200,y:200,type:0,phase:'travel',auto:true};m.status='wounded';assert.equal(C.resumeJob(m),false);m.status='healthy';assert.equal(C.resumeJob(m),true)});
+test('critical damage discards paused work for safe recovery',()=>{let m=worker();m.pausedJob={x:200,y:200,type:0};m.hp=5;A.damage(m,20,()=>.9);assert.equal(m.status,'critical');assert.equal(m.pausedJob,null)});
