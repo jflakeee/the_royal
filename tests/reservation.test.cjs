@@ -1,0 +1,6 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');const C=globalThis.RoyalCore;
+function state(){return C.migrate({city:1,stock:{},minions:[{id:'a',x:100,y:100,job:null},{id:'b',x:120,y:120,job:null}],objects:[{x:200,y:200,type:0,amount:1},{x:300,y:300,type:0,amount:1}],queue:[]})}
+test('paused auto job reserves its node from another worker',()=>{let s=state();s.minions[0].pausedJob={x:200,y:200,type:0,phase:'travel',auto:true};assert.equal(C.autoAssign(s,s.minions[1]),true);assert.equal(s.minions[1].job.x,300)});
+test('retarget avoids nodes reserved by another worker',()=>{let s=state();s.minions[0].job={x:200,y:200,type:0,phase:'travel'};s.minions[1].job={x:300,y:300,type:0,phase:'travel'};s.objects[0].amount=0;assert.equal(C.retarget(s,s.minions[0].job),false)});
+test('paused job can resume at its own reserved location',()=>{let s=state(),m=s.minions[0];m.pausedJob={x:200,y:200,type:0,phase:'travel',auto:true};assert.equal(C.resumeJob(m,s),true);assert.equal(m.job.x,200)});
+test('paused job retargets if its node is taken by another worker',()=>{let s=state(),m=s.minions[0];m.pausedJob={x:200,y:200,type:0,phase:'travel',auto:true};s.minions[1].job={x:200,y:200,type:0,phase:'travel'};assert.equal(C.resumeJob(m,s),true);assert.equal(m.job.x,300)});
