@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');const C=globalThis.RoyalCore;
+function state(){return C.migrate({city:1,stock:{},minions:[{x:100,y:100,job:null},{x:110,y:100,job:null}],objects:[{x:130,y:130,type:0,amount:1},{x:300,y:300,type:1,amount:1}],queue:[]})}
+test('idle worker selects nearest available resource',()=>{let s=state();assert.equal(C.autoAssign(s,s.minions[0]),true);assert.equal(s.minions[0].job.type,0)});
+test('second worker avoids already assigned node',()=>{let s=state();C.autoAssign(s,s.minions[0]);assert.equal(C.autoAssign(s,s.minions[1]),true);assert.equal(s.minions[1].job.type,1)});
+test('disabled automation does not override manual or assign jobs',()=>{let s=state();s.autoGather=false;assert.equal(C.autoAssign(s,s.minions[0]),false);assert.equal(s.minions[0].job,null);s.autoGather=true;s.minions[0].job={type:1,x:300,y:300,phase:'travel'};assert.equal(C.autoAssign(s,s.minions[0]),false);assert.equal(s.minions[0].job.type,1)});
+test('queued manual commands reserve nodes from auto workers',()=>{let s=state();s.queue=[{type:0,x:130,y:130,phase:'travel'}];C.autoAssign(s,s.minions[0]);assert.equal(s.minions[0].job.type,1)});
+test('auto gathering preference survives v3 save/load',()=>{let s=state();s.autoGather=false;let m=new Map(),storage={getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v)};C.save(storage,s);assert.equal(C.load(storage).autoGather,false)});
