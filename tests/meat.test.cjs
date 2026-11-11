@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');require('../animal-ai.js');const C=globalThis.RoyalCore,A=globalThis.RoyalAnimals;
+function state(){let s=C.migrate({city:1,stock:{wood:20,stone:20,flower:0,berry:0},minions:[{x:90,y:90,job:null}],objects:[]});C.build(s,'hut');A.init(s);return s}
+test('old saves migrate with zero meat',()=>{assert.equal(state().stock.meat,0)});
+test('three meat creates one minion and spends exactly three',()=>{let s=state();s.stock.meat=3;assert.equal(C.recruit(s,'meat'),true);assert.equal(s.minions.length,2);assert.equal(s.stock.meat,0);assert.equal(C.recruit(s,'meat'),false)});
+test('housing full retains meat until housing is available',()=>{let s=state();s.minions.push(...Array.from({length:4},(_,i)=>({id:'extra'+i,status:'healthy'})));s.stock.meat=3;assert.equal(C.recruit(s,'meat'),false);assert.equal(s.stock.meat,3)});
+test('defeating an animal grants meat only once',()=>{let s=state(),a=s.animals[0],m=s.minions[0];a.x=m.x;a.y=m.y;a.hp=10;m.job={kind:'combat',animalId:a.id,phase:'travel'};let e=A.tick(s,.1);assert.equal(s.stock.meat,1);assert.equal(e.filter(x=>x.kind==='defeated').length,1);A.tick(s,.1);assert.equal(s.stock.meat,1)});
+test('animal respawns after 30 seconds without duplicate meat',()=>{let s=state();s.animals[0].hp=0;s.animals[0].state='dead';A.tick(s,30);assert.equal(s.animals[0].hp,A.SPECIES.rabbit.hp);assert.equal(s.stock.meat,0)});
