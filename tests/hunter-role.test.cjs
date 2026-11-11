@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');require('../game-core.js');require('../animal-ai.js');const C=globalThis.RoyalCore,A=globalThis.RoyalAnimals;
+function state(){let s=C.migrate({city:1,stock:{},minions:[{id:'h',x:100,y:100,job:null},{id:'g',x:100,y:100,job:null}],objects:[{x:200,y:200,type:0,amount:1}],queue:[]});s.animals=[{id:'r',type:'rabbit',x:130,y:130,hp:25},{id:'w',type:'wolf',x:105,y:105,hp:60}];return s}
+test('hunter picks passive rabbit instead of closer wolf',()=>{let s=state(),m=s.minions[0];C.setRole(m,'hunter');assert.equal(C.autoHunt(s,m),'r');assert.equal(C.autoAssign(s,m),false)});
+test('hunter does not take target already assigned to another worker',()=>{let s=state();C.setRole(s.minions[0],'hunter');s.minions[1].job={kind:'combat',animalId:'r'};assert.equal(C.autoHunt(s,s.minions[0]),null)});
+test('hunter respects auto toggle and health',()=>{let s=state(),m=s.minions[0];C.setRole(m,'hunter');s.autoGather=false;assert.equal(C.autoHunt(s,m),null);s.autoGather=true;m.status='wounded';assert.equal(C.autoHunt(s,m),null)});
+test('attack order assigns only designated hunter',()=>{let s=state();assert.equal(A.attack(s,'r','h'),true);assert.equal(s.minions[0].job.kind,'combat');assert.equal(s.minions[1].job,null)});
+test('hunter role persists in v3 saves',()=>{let s=state();C.setRole(s.minions[0],'hunter');let map=new Map(),store={getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v)};C.save(store,s);assert.equal(C.load(store).minions[0].role,'hunter')});
