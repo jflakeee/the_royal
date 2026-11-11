@@ -15,8 +15,10 @@ function living(s){return s.minions.filter(m=>m.status!=="dead").length}
 function recruit(s){if(living(s)>=housing(s)||!spend(s,{berry:5}))return false;let id="m"+s.nextId++;s.minions.push({id,x:415,y:265,hp:100,maxHp:100,status:"healthy",job:null});return true}
 function heal(s,m){if(!m||m.status==="dead"||m.status==="healthy")return false;const critical=m.status==="critical";if(!spend(s,{flower:critical?3:1}))return false;m.hp=critical?60:80;m.status="healthy";return true}
 function build(s,type){let cost=RECIPES[type];if(!cost||!spend(s,cost))return false;s.buildings.push({id:"b"+s.nextId++,type});s.cityLevel=s.buildings.length;return true}
-function nextBuilding(s){if(housing(s)<=living(s))return "hut";if(s.minions.some(m=>m.status==="critical"||m.status==="wounded")&&!s.buildings.some(b=>b.type==="clinic"))return "clinic";if(!s.buildings.some(b=>b.type==="warehouse"))return "warehouse";if(!s.buildings.some(b=>b.type==="plaza"))return "plaza";return "hut"}
+function migrationReady(s){return s.buildings.length>=8&&living(s)>=10&&s.buildings.some(b=>b.type==="clinic")&&s.buildings.some(b=>b.type==="plaza")&&s.minions.filter(m=>m.status==="healthy").length>=3}
+function nextBuilding(s){if(s.minions.some(m=>m.status==="critical"||m.status==="wounded")&&!s.buildings.some(b=>b.type==="clinic"))return "clinic";if(housing(s)<=living(s))return "hut";if(!s.buildings.some(b=>b.type==="clinic"))return "clinic";if(!s.buildings.some(b=>b.type==="warehouse"))return "warehouse";if(!s.buildings.some(b=>b.type==="plaza"))return "plaza";if(housing(s)<10)return "hut";if(!s.buildings.some(b=>b.type==="watchtower"))return "watchtower";return "hut"}
+function replenish(s,dt){for(const o of s.objects){if(o.amount>0)continue;o.regen=(Number.isFinite(o.regen)?o.regen:0)+dt;if(o.regen>=15){o.amount=4;o.regen=0}}}
 function load(storage){let v3=storage.getItem("royal-save-v3");if(v3){try{return migrate(JSON.parse(v3))}catch(e){}}let v1=storage.getItem("royal-save-v1");if(v1){try{return migrate(JSON.parse(v1))}catch(e){}}return null}
 function save(storage,s){storage.setItem("royal-save-v3",JSON.stringify(migrate(s)))}
-root.RoyalCore={RECIPES,migrate,stock,canAfford,spend,housing,living,recruit,heal,build,nextBuilding,load,save};
+root.RoyalCore={RECIPES,migrate,stock,canAfford,spend,housing,living,recruit,heal,build,nextBuilding,migrationReady,replenish,load,save};
 })(typeof globalThis!=="undefined"?globalThis:this);
