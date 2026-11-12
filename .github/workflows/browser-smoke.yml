@@ -1,0 +1,20 @@
+name: Chromium browser smoke
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Run mobile viewport and reload persistence smoke
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/the-royal-http.log 2>&1 &
+          node tests/browser-smoke.cjs
