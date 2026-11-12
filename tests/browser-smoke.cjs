@@ -18,6 +18,23 @@ const assert = require('node:assert/strict');
   const layout=await page.evaluate(()=>({viewport:innerWidth,body:document.body.scrollWidth,queue:!!document.querySelector('#queue-select'),warning:!!document.querySelector('#save-warning')}));
   assert.ok(layout.body<=layout.viewport+2,'horizontal overflow: '+JSON.stringify(layout));
   assert.ok(layout.queue&&layout.warning);
+  // Force localStorage writes to fail in the actual page, then recover.
+  const failure=await page.evaluate(()=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(){throw new DOMException('Storage full','QuotaExceededError')};
+    s.stock.wood=23;
+    const saved=save();
+    const warning=document.getElementById('save-warning').classList.contains('visible');
+    const previous=JSON.parse(localStorage.getItem('royal-save-v3')).stock.wood;
+    Storage.prototype.setItem=original;
+    return {saved,warning,previous};
+  });
+  assert.deepEqual(failure,{saved:false,warning:true,previous:17});
+  await page.getByRole('button',{name:'다시 저장'}).click();
+  assert.equal(await page.locator('#save-warning').evaluate(el=>el.classList.contains('visible')),false);
+  await page.reload({waitUntil:'load'});
+  assert.equal(await page.evaluate(()=>s.stock.wood),23);
+  console.log('PASS Chromium injected quota failure, manual retry and reload recovery');
   assert.deepEqual(errors,[]);
   console.log('PASS Chromium reload persistence and 390px mobile layout');
  }finally{await browser.close()}
