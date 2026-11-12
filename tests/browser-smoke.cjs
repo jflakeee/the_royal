@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
   await page.waitForSelector('#world');
   await page.selectOption('#focus','2');
   await page.selectOption('#role','wood');
-  await page.evaluate(()=>{s.stock.wood=17;s.city=3;save()});
+  await page.evaluate(()=>{s.autoGather=false;s.stock.wood=17;s.city=3;save()});
   const before=await page.evaluate(()=>({city:s.city,wood:s.stock.wood,focus:s.gatherFocus,role:s.minions[0].role,saved:!!localStorage.getItem('royal-save-v3')}));
   assert.deepEqual(before,{city:3,wood:17,focus:2,role:'wood',saved:true});
   await page.reload({waitUntil:'load'});
