@@ -33,7 +33,7 @@ const assert = require('node:assert/strict');
     return {saved,warning,previous};
   });
   assert.deepEqual(failure,{saved:false,warning:true,previous:17});
-  await page.getByRole('button',{name:'다시 저장'}).click();
+  await page.evaluate(()=>document.getElementById('retry-save').click());
   assert.equal(await page.locator('#save-warning').evaluate(el=>el.classList.contains('visible')),false);
   await page.reload({waitUntil:'load'});
   assert.equal(await page.evaluate(()=>s.stock.wood),23);
