@@ -43,6 +43,11 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#royal-3d').isVisible(),true);
     assert.equal(await page.locator('#world').isVisible(),false);
     assert.equal(await page.locator('#royal-3d canvas').count(),1);
+    const perf=await page.evaluate(()=>window.royal3DPerf());
+    assert.ok(perf.samples>0&&Number.isFinite(perf.averageMs)&&perf.drawCalls>0,'3D renderer must produce measurable frames');
+    console.log('INFO headless Chromium 3D performance (not physical mobile FPS): '+JSON.stringify(perf));
+    const dimensions=await page.locator('#royal-3d canvas').evaluate(el=>({width:el.clientWidth,height:el.clientHeight}));
+    assert.ok(dimensions.width>=300&&dimensions.height>=300,'3D canvas must fit mobile viewport');
     const candidate=await page.evaluate(()=>window.royal3DVisibleResources().find(o=>o.type===0)||window.royal3DVisibleResources()[0]);
     assert.ok(candidate,'at least one resource must be visible in 3D');
     await page.evaluate(()=>{s.minions.forEach(m=>m.job=null);s.queue=[];s.autoGather=false});
@@ -55,6 +60,12 @@ const assert = require('node:assert/strict');
     assert.deepEqual(await page.evaluate(()=>({city:s.city,wood:s.stock.wood,role:s.minions[0].role})),snapshot);
     console.log('PASS 3D toggle and WebGL canvas initialization');
   }
+  for(const width of [320,375,768]){
+    await page.setViewportSize({width,height:844});
+    const measure=await page.evaluate(()=>({viewport:innerWidth,body:document.body.scrollWidth}));
+    assert.ok(measure.body<=measure.viewport+2,'responsive overflow '+JSON.stringify(measure));
+  }
+  console.log('PASS responsive layout at 320, 375, 390 and 768 CSS px');
   assert.deepEqual(errors,[]);
   console.log('PASS Chromium reload persistence and 390px mobile layout');
  }finally{await browser.close()}
