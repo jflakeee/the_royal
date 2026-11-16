@@ -21,9 +21,16 @@ const floorInstances=[[],[]];
 for(let x=-51;x<52;x+=3){for(let z=-32;z<33;z+=3){const r=rnd(x,z);if(r>.28)floorInstances[r>.82?1:0].push([x,.04,z,2.85,.17+r*.15,2.85])}}
 const floorTransform=new THREE.Object3D();
 floorInstances.forEach((tiles,i)=>{if(!tiles.length)return;const mesh=new THREE.InstancedMesh(box,i?edge:stone,tiles.length);tiles.forEach(([x,y,z,w,h,d],index)=>{floorTransform.position.set(x,y,z);floorTransform.scale.set(w,h,d);floorTransform.updateMatrix();mesh.setMatrixAt(index,floorTransform.matrix)});mesh.instanceMatrix.needsUpdate=true;mesh.receiveShadow=true;mesh.castShadow=false;mesh.computeBoundingSphere();terrain.add(mesh)});
-for(let x=-52;x<=52;x+=7){for(const z of [-34,34]){const h=2+rnd(x,z)*5;cube(terrain,x,h/2,z,3,h,3,stone)}}
-for(let z=-31;z<=31;z+=7){for(const x of [-53,53]){const h=2+rnd(x,z)*5;cube(terrain,x,h/2,z,3,h,3,stone)}}
-for(let i=0;i<22;i++){const a=i*2.399,r=37+i%5*2,x=Math.cos(a)*r,z=Math.sin(a)*r*.65,h=3+rnd(i,4)*7;cube(terrain,x,h/2,z,2,h,2,stone);cube(terrain,x,h+.25,z,3,.5,3,edge)}
+// Merge stationary boundary pillars into two instanced meshes, preserving positions and silhouettes.
+const boundaryStone=[],boundaryCaps=[];
+for(let x=-52;x<=52;x+=7)for(const z of [-34,34]){const h=2+rnd(x,z)*5;boundaryStone.push([x,h/2,z,3,h,3])}
+for(let z=-31;z<=31;z+=7)for(const x of [-53,53]){const h=2+rnd(x,z)*5;boundaryStone.push([x,h/2,z,3,h,3])}
+for(let i=0;i<22;i++){const a=i*2.399,r=37+i%5*2,x=Math.cos(a)*r,z=Math.sin(a)*r*.65,h=3+rnd(i,4)*7;boundaryStone.push([x,h/2,z,2,h,2]);boundaryCaps.push([x,h+.25,z,3,.5,3])}
+for(const [instances,material] of [[boundaryStone,stone],[boundaryCaps,edge]]){
+ const mesh=new THREE.InstancedMesh(box,material,instances.length);
+ instances.forEach(([x,y,z,w,h,d],i)=>{floorTransform.position.set(x,y,z);floorTransform.scale.set(w,h,d);floorTransform.updateMatrix();mesh.setMatrixAt(i,floorTransform.matrix)});
+ mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=!mobileGPU;mesh.receiveShadow=!mobileGPU;mesh.computeBoundingSphere();terrain.add(mesh);
+}
 const altar=new THREE.Group();altar.position.set(0,0,-9);terrain.add(altar);cube(altar,0,.7,0,8,1.4,7,stone);cube(altar,0,1.5,0,6,.4,5,edge);cube(altar,0,3.2,0,1.3,3.1,1.3,gold);
 const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(1.4),new THREE.MeshStandardMaterial({color:0x72d8c9,emissive:0x3ac4bf,emissiveIntensity:2.8,roughness:.2}));crystal.position.set(0,5,0);altar.add(crystal);const glow=new THREE.PointLight(0x60ded3,35,24);glow.position.set(0,5,0);if(!mobileGPU)altar.add(glow);
 const sparks=[];const sparkGeometry=new THREE.BoxGeometry(.12,.12,.12),sparkMaterials=[new THREE.MeshBasicMaterial({color:0x9eece2}),new THREE.MeshBasicMaterial({color:0xffd08c})];for(let i=0;i<30;i++){const o=new THREE.Mesh(sparkGeometry,sparkMaterials[i%2]);o.position.set((rnd(i,1)-.5)*80,1+rnd(i,2)*8,(rnd(i,3)-.5)*54);scene.add(o);sparks.push({o,y:o.position.y,phase:i*.71})}
