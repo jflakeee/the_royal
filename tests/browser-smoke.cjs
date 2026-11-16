@@ -43,8 +43,16 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#royal-3d').isVisible(),true);
     assert.equal(await page.locator('#world').isVisible(),false);
     assert.equal(await page.locator('#royal-3d canvas').count(),1);
+    const candidate=await page.evaluate(()=>window.royal3DVisibleResources().find(o=>o.type===0)||window.royal3DVisibleResources()[0]);
+    assert.ok(candidate,'at least one resource must be visible in 3D');
+    await page.evaluate(()=>{s.minions.forEach(m=>m.job=null);s.queue=[];s.autoGather=false});
+    await page.locator('#royal-3d canvas').click({position:{x:candidate.x,y:candidate.y}});
+    const commanded=await page.evaluate(()=>s.minions.some(m=>m.job&&m.job.type>=0)||s.queue.length>0);
+    assert.ok(commanded,'3D resource click should create a real gathering command');
+    const snapshot=await page.evaluate(()=>({city:s.city,wood:s.stock.wood,role:s.minions[0].role}));
     await page.locator('#view-toggle').click();
     assert.equal(await page.locator('#world').isVisible(),true);
+    assert.deepEqual(await page.evaluate(()=>({city:s.city,wood:s.stock.wood,role:s.minions[0].role})),snapshot);
     console.log('PASS 3D toggle and WebGL canvas initialization');
   }
   assert.deepEqual(errors,[]);
