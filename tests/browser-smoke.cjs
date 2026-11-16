@@ -77,7 +77,7 @@ const assert = require('node:assert/strict');
   assert.equal(overlaps(visual.hud,visual.fps),false,'frame output must not overlap collection status');
   assert.ok(visual.titleText.includes('THE ROYAL')&&visual.hudText.trim().length>0,'title and live collection data must contain text');
   assert.ok(visual.header.top>=-1&&visual.header.bottom<=visual.viewport.height&&visual.fps.top>=0&&visual.fps.bottom<=visual.viewport.height,'HUD and FPS must fit inside 3D viewport');
-  assert.ok(visual.fps.top>=visual.header.bottom+4,'FPS label must not overlap the title and collection HUD');
+  assert.ok(visual.fps.top>=visual.header.top&&visual.fps.bottom<=visual.header.bottom,'FPS output should stay inside game HUD');
   await page.screenshot({path:'royal-3d-mobile.png',fullPage:true});
   assert.equal(await page.locator('#world').isVisible(),false);
   assert.equal(await page.locator('#view-toggle').isVisible(),false);
