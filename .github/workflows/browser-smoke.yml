@@ -19,3 +19,11 @@ jobs:
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/the-royal-http.log 2>&1 &
           node tests/browser-smoke.cjs
+
+      - name: Upload 3D mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: royal-3d-mobile-screenshot
+          path: royal-3d-mobile.png
+          if-no-files-found: ignore
