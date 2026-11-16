@@ -40,7 +40,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#view-toggle').isDisabled(),false,'WebGL initialization failed');
     await page.locator('#view-toggle').click();
     await page.waitForTimeout(1200);
-    await page.waitForFunction(()=>/^FPS \d+$/.test(document.querySelector('#royal-fps')?.textContent||''),{timeout:5000});
+    await page.waitForFunction(()=>/^렌더 \d+\/s \| P95 \d+ms \| 지연 \d+$/.test(document.querySelector('#royal-fps')?.textContent||''),{timeout:5000});
     const liveFps=await page.locator('#royal-fps').textContent();
     console.log('INFO actual rendered frames per second in headless Chromium: '+liveFps);
     assert.equal(await page.locator('#royal-3d').isVisible(),true);
