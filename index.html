@@ -27,7 +27,7 @@ function syncQueue(){
  selectedQueueIndex=s.queue.length?Math.min(Math.max(0,selectedQueueIndex),s.queue.length-1):-1;
  queueSelect.replaceChildren();
  if(!s.queue.length){const empty=document.createElement('span');empty.className='queue-empty';empty.textContent='대기 명령 없음';queueSelect.append(empty)}
- s.queue.forEach((job,i)=>{const button=document.createElement('button');button.type='button';button.className='queue-choice';button.dataset.index=String(i);button.textContent=(i+1)+'. '+(names[job.type]||'자원')+' ('+Math.round(job.x)+','+Math.round(job.y)+')';button.setAttribute('aria-pressed',String(i===selectedQueueIndex));button.onclick=()=>{selectedQueueIndex=i;queueSelect.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-pressed',String(j===i)))};queueSelect.append(button)});
+ s.queue.forEach((job,i)=>{const button=document.createElement('button');button.type='button';button.className='queue-choice';button.dataset.index=String(i);button.textContent=(i+1)+'. '+(names[job.type]||'자원')+' ('+Math.round(job.x)+','+Math.round(job.y)+')';button.setAttribute('aria-pressed',String(i===selectedQueueIndex));button.onclick=()=>{selectedQueueIndex=i;queueSelect.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-pressed',String(j===i)));document.getElementById('queue-first').disabled=i<1};queueSelect.append(button)});
  document.getElementById('queue-first').disabled=s.queue.length<2||selectedQueueIndex<1;
  document.getElementById('queue-cancel').disabled=!s.queue.length;
 }
