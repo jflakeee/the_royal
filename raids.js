@@ -1,13 +1,13 @@
 (function(root){"use strict";
-const INTERVAL=300, MAX_ATTACKERS=72, RESOURCE_KEYS=["wood","stone","flower","berry","meat"];
+const RESOURCE_KEYS=["wood","stone","flower","berry","meat"];
 function init(s){if(!s.raids||typeof s.raids!=="object")s.raids={elapsed:0,wave:0,attackers:[],stolen:0,defeated:0};const r=s.raids;r.elapsed=Number.isFinite(r.elapsed)?Math.max(0,r.elapsed):0;r.wave=Number.isFinite(r.wave)?Math.max(0,Math.floor(r.wave)):0;r.attackers=Array.isArray(r.attackers)?r.attackers:[];r.stolen=Number.isFinite(r.stolen)?Math.max(0,r.stolen):0;r.defeated=Number.isFinite(r.defeated)?Math.max(0,r.defeated):0;return r}
 const MODES={boss:{label:"👹 보스 몬스터",count:1,hp:1800,speed:12,damage:4},raiders:{label:"⚔️ 대량 약탈자",count:48,hp:48,speed:28,damage:1},mages:{label:"🔥 원소 마법사",count:5,hp:320,speed:20,damage:3},zombies:{label:"🧟 초대량 좀비떼",count:180,hp:24,speed:15,damage:1}};
-function available(s){const r=init(s);return r.elapsed>=INTERVAL&&!r.attackers.length}
+function available(s){const r=init(s);return (s.cityLevel||0)>=15&&!r.attackers.length&&r.completedCity!==s.city&&!s.endingComplete}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
- r.elapsed=0;r.wave++;r.mode=mode;const count=spec.count;
+ r.wave++;r.mode=mode;const count=spec.count;
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
-function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));r.elapsed+=dt;
+function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));
 for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
 const before=r.attackers.length;
 for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.raiders;
@@ -36,10 +36,10 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
 r.attackers=r.attackers.filter(a=>a.hp>0);
-if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;
+if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;r.completedCity=s.city;
  const reward=Math.max(2,Math.floor((MODES[r.mode]?.count||1)/8)+r.wave*2);
  if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
  events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
 return events}
-root.RoyalRaids={INTERVAL,MODES,init,tick,spawn,available};
+root.RoyalRaids={MODES,init,tick,spawn,available};
 })(typeof globalThis!=="undefined"?globalThis:this);
