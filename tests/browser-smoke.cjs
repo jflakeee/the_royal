@@ -71,6 +71,10 @@ const assert = require('node:assert/strict');
   assert.ok(visual.host.width>=visual.viewport.width-2&&visual.host.height>=visual.viewport.height-2,'3D host must fill viewport');
   assert.ok(visual.canvas.width>=visual.viewport.width-2&&visual.canvas.height>=visual.viewport.height-2,'3D canvas must fill viewport');
   assert.ok(visual.visible.title&&visual.visible.hud&&visual.visible.fps,'title, collection HUD and frame indicator must be visible');
+  assert.equal(await page.locator('#game-hud > #royal-fps').count(),1,'frame output must be inside the 3D HUD');
+  const overlaps=(a,b)=>a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;
+  assert.equal(overlaps(visual.title,visual.fps),false,'frame output must not overlap game title');
+  assert.equal(overlaps(visual.hud,visual.fps),false,'frame output must not overlap collection status');
   assert.ok(visual.titleText.includes('THE ROYAL')&&visual.hudText.trim().length>0,'title and live collection data must contain text');
   assert.ok(visual.header.top>=-1&&visual.header.bottom<=visual.viewport.height&&visual.fps.top>=0&&visual.fps.bottom<=visual.viewport.height,'HUD and FPS must fit inside 3D viewport');
   assert.ok(visual.fps.top>=visual.header.bottom+4,'FPS label must not overlap the title and collection HUD');
@@ -94,7 +98,9 @@ const assert = require('node:assert/strict');
   console.log('PASS fullscreen 3D, resource interaction, in-game HUD and settings');
   for(const width of [320,375,768]){
     await page.setViewportSize({width,height:844});
-    const measure=await page.evaluate(()=>({viewport:innerWidth,body:document.body.scrollWidth}));
+    const measure=await page.evaluate(()=>({viewport:innerWidth,body:document.body.scrollWidth,hostY:document.querySelector('#royal-3d').getBoundingClientRect().top,hostH:document.querySelector('#royal-3d').getBoundingClientRect().height,screenH:innerHeight,hudChildren:[...document.querySelectorAll('#game-hud > b,#game-hud > #hud,#game-hud > #royal-fps')].map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})}));
+    assert.ok(Math.abs(measure.hostY)<=1&&measure.hostH>=measure.screenH-2,'3D must fill viewport at '+width);
+    for(let i=0;i<measure.hudChildren.length;i++)for(let j=i+1;j<measure.hudChildren.length;j++)assert.equal(overlaps(measure.hudChildren[i],measure.hudChildren[j]),false,'HUD elements overlap at '+width);
     assert.ok(measure.body<=measure.viewport+2,'responsive overflow '+JSON.stringify(measure));
   }
   console.log('PASS responsive layout at 320, 375, 390 and 768 CSS px');
