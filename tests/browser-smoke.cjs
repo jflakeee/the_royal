@@ -85,6 +85,9 @@ const assert = require('node:assert/strict');
   await page.evaluate(()=>{s.minions.forEach(m=>m.job=null);s.queue=[];s.autoGather=false});
   await page.locator('#royal-3d canvas').click({position:{x:candidate.x,y:candidate.y}});
   assert.ok(await page.evaluate(()=>s.minions.some(m=>m.job&&m.job.type>=0)||s.queue.length>0),'3D click should dispatch gather command');
+  // The settings panel is intentionally collapsed after reload; open it before
+  // testing visibility of its child controls (instead of asserting while hidden).
+  await page.locator('#game-settings summary').click();
   assert.equal(await page.locator('#auto').isVisible(),true);
   assert.equal(await page.locator('#worker').isVisible(),true);
   console.log('PASS fullscreen 3D, resource interaction, in-game HUD and settings');
