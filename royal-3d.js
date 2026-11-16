@@ -2,7 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 const canvas2d=document.getElementById('world'),host=document.getElementById('royal-3d'),toggle=document.getElementById('view-toggle');
 const state=()=>window.royal3DState?.();
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x111c2a);scene.fog=new THREE.FogExp2(0x182b35,.023);
-let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})}catch(e){toggle.disabled=true;toggle.textContent='3D 사용 불가';return}
+let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})}catch(e){toggle.disabled=true;toggle.textContent='3D 사용 불가';throw e}
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;host.append(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(43,1,.1,400);let yaw=.8,zoom=56,active=false;
 const light=new THREE.HemisphereLight(0xaac5e8,0x23342f,2.4);scene.add(light);
@@ -24,8 +24,8 @@ const sparks=[];for(let i=0;i<30;i++){const o=new THREE.Mesh(new THREE.BoxGeomet
 function xy(x,y){return[(x-400)*.125,(y-240)*.125]}
 function resource(o){const g=new THREE.Group();const [x,z]=xy(o.x,o.y);g.position.set(x,0,z);const kind=o.type;if(kind===0){cube(g,0,1.2,0,.8,2.4,.8,wood);cube(g,0,3.2,0,2.8,2.6,2.8,leaf);cube(g,0,4.5,0,1.6,1.2,1.6,leaf)}else if(kind===1){cube(g,0,.85,0,2,1.7,1.8,stone);cube(g,.7,1.5,-.4,1,1.1,1,edge)}else if(kind===2){cube(g,0,.6,0,.25,1.2,.25,leaf);for(let i=0;i<4;i++)cube(g,Math.sin(i*Math.PI/2)*.5,1.2,Math.cos(i*Math.PI/2)*.5,.65,.4,.65,flower)}else{cube(g,0,1.1,0,.4,2.2,.4,wood);cube(g,0,2.2,0,2.1,1.8,2.1,leaf);for(let i=0;i<4;i++)cube(g,Math.sin(i*1.57)*.8,2.2,Math.cos(i*1.57)*.8,.38,.38,.38,berry)}g.userData.resource=o;actors.add(g);return g}
 function minion(m){const g=new THREE.Group();const [x,z]=xy(m.x,m.y);g.position.set(x,0,z);cube(g,0,.95,0,.85,1.3,.55,cloth);cube(g,0,1.88,0,.72,.72,.7,gold);cube(g,-.22,.25,0,.28,.5,.4,stone);cube(g,.22,.25,0,.28,.5,.4,stone);cube(g,-.55,1,0,.3,.85,.3,stone);cube(g,.55,1,0,.3,.85,.3,stone);actors.add(g);return g}
-let resourceObjects=[],minionObjects=[],focus=new THREE.Vector3(),lastSync=0;
-function sync(){const s=state();if(!s)return;resourceObjects.forEach(g=>actors.remove(g));minionObjects.forEach(g=>actors.remove(g));resourceObjects=s.objects.filter(o=>o.amount>0).map(resource);minionObjects=s.minions.filter(m=>m.status!=='dead').map(minion);const leader=s.minions.find(m=>m.status!=='dead');if(leader){const [x,z]=xy(leader.x,leader.y);focus.lerp(new THREE.Vector3(x,1,z),.2)}}
+let resourceObjects=[],minionObjects=[],focus=new THREE.Vector3(),lastSync=0,resourceSignature='';
+function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,0,z)});const leader=s.minions.find(m=>m.status!=='dead');if(leader){const [x,z]=xy(leader.x,leader.y);focus.lerp(new THREE.Vector3(x,1,z),.2)}}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
 renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,last:e.clientX};renderer.domElement.setPointerCapture(e.pointerId)});
 renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)yaw-=(e.clientX-down.last)*.008;down.last=e.clientX});
