@@ -6,7 +6,7 @@ let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreferenc
 const mobileGPU=matchMedia('(max-width: 600px), (pointer: coarse)').matches;
 renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGPU?1:1.25));renderer.shadowMap.enabled=!mobileGPU;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;host.append(renderer.domElement);
 host.style.position='relative';const fpsLabel=document.createElement('output');fpsLabel.id='royal-fps';fpsLabel.setAttribute('aria-label','3D 렌더링 호출 및 프레임 간격');fpsLabel.style.cssText='position:absolute;top:calc(72px + env(safe-area-inset-top));right:10px;z-index:2;padding:5px 9px;border-radius:7px;background:transparent;color:#b7f6ce;font:600 13px/1.4 ui-monospace,monospace;pointer-events:none;font-variant-numeric:tabular-nums';fpsLabel.textContent='FPS --';document.getElementById('game-hud').append(fpsLabel);
-const camera=new THREE.OrthographicCamera(-36,36,36,-36,.1,400);const yaw=Math.PI/4;let zoom=110,active=false;
+const camera=new THREE.OrthographicCamera(-36,36,36,-36,.1,400);const yaw=Math.PI/4;let zoom=Math.min(320,Math.max(110,110*innerHeight/Math.max(1,innerWidth))),active=false;
 const light=new THREE.HemisphereLight(0xaac5e8,0x23342f,2.4);scene.add(light);
 const moon=new THREE.DirectionalLight(0xc6dcff,2.8);moon.position.set(-25,55,-30);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);moon.shadow.camera.left=-55;moon.shadow.camera.right=55;moon.shadow.camera.top=55;moon.shadow.camera.bottom=-55;scene.add(moon);
 const box=new THREE.BoxGeometry(1,1,1),mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
