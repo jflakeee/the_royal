@@ -6,7 +6,7 @@ document.getElementById('restart').onclick=()=>{const q=new URLSearchParams();fo
 function data(){let seed=17;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);const count=id=>Math.max(0,Math.min(Number(document.getElementById(id).max),Number(document.getElementById(id).value)||0));const make=(n)=>Array.from({length:count(n)},(_,i)=>({x:rand()*900-450,y:rand()*600-300,phase:rand()*6.28,id:i}));return {units:make('units'),resources:make('resources'),buildings:make('buildings')}}
 function meter(extra=()=>({})){let last=0,start=0,frames=0,dt=[];return function(t){if(last){dt.push(t-last);if(dt.length>240)dt.shift()}last=t;frames++;if(!start)start=t;if(t-start>=2000){const sorted=[...dt].sort((a,b)=>a-b);const p95=sorted[Math.floor((sorted.length-1)*.95)]||0;const e=extra();stats.textContent='렌더 호출/초: '+(frames*1000/(t-start)).toFixed(1)+' | P95: '+p95.toFixed(1)+'ms | 지연>50ms: '+dt.filter(x=>x>50).length+' / '+dt.length+'\n'+JSON.stringify(e)+'\n동일 시드·수량 / 2초 갱신 / 기기별 직접 비교 필요';start=t;frames=0}}}
 const sceneData=data();
-import {Application,Container,Graphics} from 'https://cdn.jsdelivr.net/npm/pixi.js@8.6.6/dist/pixi.min.mjs';
+import {Application,Container,Graphics} from 'https://cdn.jsdelivr.net/npm/pixi.js@8.6.6/dist/pixi.mjs';
 document.querySelector('#engine').textContent='PixiJS 8 · WebGL · 2.5D';
 const app=new Application();await app.init({resizeTo:stage,background:'#192c39',antialias:false,resolution:Math.min(devicePixelRatio,1),preference:'webgl'});stage.append(app.canvas);
 const world=new Container();app.stage.addChild(world);
