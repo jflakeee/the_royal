@@ -8,6 +8,7 @@ function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));r.elapsed+=dt;
+for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
 const before=r.attackers.length;
 for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.raiders;
  const dx=415-a.x,dy=265-a.y,d=Math.hypot(dx,dy);
@@ -21,14 +22,18 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
    const radius=a.type==='mages'?230:a.type==='boss'?130:90;
    for(const m of targets.filter(m=>Math.hypot(m.x-a.x,m.y-a.y)<=radius).slice(0,maxTargets)){
     const hit=a.type==='boss'?20:a.type==='mages'?(a.element==='fire'?16:a.element==='earth'?14:12):4;
-    m.hp=Math.max(1,(Number(m.hp)||100)-hit);if(a.type==='mages'&&a.element==='water')m.raidSlow=Math.max(m.raidSlow||0,3);if(a.type==='mages'&&a.element==='wind')m.raidDisplaced=(m.raidDisplaced||0)+1;
+    m.hp=Math.max(1,(Number(m.hp)||100)-hit);if(a.type==='mages'&&a.element==='water')m.raidSlow=Math.max(m.raidSlow||0,3);
+    if(a.type==='mages'&&a.element==='wind'){const vx=m.x-415,vy=m.y-265,len=Math.hypot(vx,vy)||1;m.x+=vx/len*16;m.y+=vy/len*16}
+    if(a.type==='mages'&&a.element==='lightning')m.raidStun=Math.max(m.raidStun||0,1.5);
     if(m.hp<=25){m.status='critical';m.job=null}else if(m.hp<=60)m.status='wounded';
     events.push({kind:"hit",type:a.type,element:a.element,damage:hit})
    }
   }
  }}
- const guards=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter'&&Math.hypot(m.x-a.x,m.y-a.y)<90);
- if(guards.length){a.hp-=35*dt*Math.min(3,guards.length);if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
+ const guards=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter'&&Math.hypot(m.x-a.x,m.y-a.y)<150);
+ const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').length;
+ const defense=(guards.length?35*Math.min(3,guards.length):0)+Math.min(6,towers)*24;
+ if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
 r.attackers=r.attackers.filter(a=>a.hp>0);
 if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;
