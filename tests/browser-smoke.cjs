@@ -25,16 +25,18 @@ const assert = require('node:assert/strict');
   assert.ok(layout.body<=layout.viewport+2,'horizontal overflow: '+JSON.stringify(layout));
   assert.ok(layout.queue&&layout.warning);
   assert.equal(await page.locator('#queue-select select').count(),0,'queue must use buttons, not native dropdown');
-  await page.evaluate(()=>{s.queue=[{type:0,x:100,y:100},{type:1,x:200,y:200}];syncQueue()});
-  assert.equal(await page.locator('#queue-select button').count(),2);
+  // The live update loop dispatches waiting work every frame; freeze only queue
+  // consumption during this control test while keeping actual DOM click handling.
+  await page.evaluate(()=>{s.autoGather=false;s.minions.forEach(m=>m.job={kind:'gather',type:0,x:m.x+300,y:m.y+300,phase:'travel'});s.queue=[{type:0,x:100,y:100},{type:1,x:200,y:200}];syncQueue()});
   await page.locator('#game-settings summary').click();
-  await page.locator('#queue-select button').nth(1).click();
+  await page.waitForFunction(()=>document.querySelectorAll('#queue-select button').length===2);
+  await page.locator('#queue-select button').nth(1).click({timeout:5000});
   assert.equal(await page.locator('#queue-select button').nth(1).getAttribute('aria-pressed'),'true');
-  await page.locator('#queue-first').click();
+  await page.locator('#queue-first').click({timeout:5000});
   assert.equal(await page.evaluate(()=>s.queue[0].type),1);
-  await page.locator('#queue-cancel').click();
+  await page.locator('#queue-cancel').click({timeout:5000});
   assert.equal(await page.evaluate(()=>s.queue.length),1);
-  await page.evaluate(()=>{s.queue=[];syncQueue()});
+  await page.evaluate(()=>{s.queue=[];s.minions.forEach(m=>m.job=null);syncQueue()});
   // Force localStorage writes to fail in the actual page, then recover.
   const failure=await page.evaluate(()=>{
     const original=Storage.prototype.setItem;
