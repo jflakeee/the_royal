@@ -35,6 +35,18 @@ const assert = require('node:assert/strict');
   await page.reload({waitUntil:'load'});
   assert.equal(await page.evaluate(()=>s.stock.wood),23);
   console.log('PASS Chromium injected quota failure, manual retry and reload recovery');
+  if(await page.locator('#view-toggle').count()){
+    await page.waitForFunction(()=>document.querySelector('#royal-3d canvas')||document.querySelector('#view-toggle').disabled,{timeout:15000});
+    assert.equal(await page.locator('#view-toggle').isDisabled(),false,'WebGL initialization failed');
+    await page.locator('#view-toggle').click();
+    await page.waitForTimeout(800);
+    assert.equal(await page.locator('#royal-3d').isVisible(),true);
+    assert.equal(await page.locator('#world').isVisible(),false);
+    assert.equal(await page.locator('#royal-3d canvas').count(),1);
+    await page.locator('#view-toggle').click();
+    assert.equal(await page.locator('#world').isVisible(),true);
+    console.log('PASS 3D toggle and WebGL canvas initialization');
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS Chromium reload persistence and 390px mobile layout');
  }finally{await browser.close()}
