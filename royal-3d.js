@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 const canvas2d=document.getElementById('world'),host=document.getElementById('royal-3d'),toggle=document.getElementById('view-toggle');
 const state=()=>window.royal3DState?.();
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x111c2a);scene.fog=new THREE.FogExp2(0x182b35,.023);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x111c2a);scene.fog=null; // Keep distant terrain clear instead of fading into atmospheric fog.
 let renderer;try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})}catch(e){toggle.disabled=true;toggle.textContent='3D 사용 불가';host.textContent='이 브라우저에서는 3D 화면을 실행할 수 없습니다. WebGL 지원 여부를 확인해 주세요.';throw e}
 const mobileGPU=matchMedia('(max-width: 600px), (pointer: coarse)').matches;
 renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGPU?1:1.25));renderer.shadowMap.enabled=!mobileGPU;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;host.append(renderer.domElement);
