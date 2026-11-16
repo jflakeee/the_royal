@@ -53,7 +53,24 @@ const characterMaterials={minion:new THREE.SpriteMaterial({map:characterTexture(
 function character(kind){const sprite=new THREE.Sprite(characterMaterials[kind]);sprite.scale.set(2.5,3.75,1);sprite.position.y=1.85;actors.add(sprite);return sprite}
 function minion(m){const sprite=character('minion');const [x,z]=xy(m.x,m.y);sprite.position.set(x,1.85,z);return sprite}
 let resourceObjects=[],minionObjects=[],animalObjects=[],focus=new THREE.Vector3(0,1,0),lastSync=0,resourceSignature='';let mapLevel=1,transition=null;
-const expansionLayers=[];
+const expansionLayers=[],archives=[];
+function archiveVillage(snapshot){
+ if(!snapshot)return;
+ const group=new THREE.Group();group.name='completed-village-'+snapshot.city;scene.add(group);
+ const level=Math.max(1,snapshot.city||1),offset=-(level-1)*62;
+ const marker=cube(group,offset,.45,0,12,.9,9,gold);marker.castShadow=false;
+ const buildings=Math.min(80,Array.isArray(snapshot.buildings)?snapshot.buildings.length:0);
+ for(let i=0;i<buildings;i++){const a=i*2.399,r=8+Math.sqrt(i)*3;const x=offset+Math.cos(a)*r,z=Math.sin(a)*r*.68;const house=cube(group,x,1.2,z,2.6,2.4,2.6,wood);house.castShadow=false}
+ archives.push(group);
+}
+function restoreWorld(s){
+ const target=Math.max(1,Math.min(8,Math.floor(s?.city||1)));
+ if(target<=mapLevel)return;
+ for(let level=mapLevel+1;level<=target;level++){const layer=revealNewTerrain(level);layer.visible=true}
+ for(const snapshot of (s.history||[]).slice(0,7))archiveVillage(snapshot);
+ mapLevel=target;zoom=Math.min(320,Math.max(zoom,110*Math.pow(1.3,target-1)));resize();
+}
+
 function revealNewTerrain(level){
  const layer=new THREE.Group();layer.visible=false;scene.add(layer);
  const tiles=[];const inner=level===2?54:54+(level-2)*38,outer=inner+38;
@@ -67,14 +84,14 @@ function revealNewTerrain(level){
  const ground=cube(layer,0,-1.2,0,outer*2,1.8,outer*1.32,moss);ground.visible=false;
  expansionLayers.push({layer,mesh,level});return layer;
 }
-function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});}
+function sync(){const s=state();if(!s)return;if(mapLevel===1&&s.city>1)restoreWorld(s);const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
 const pointers=new Map();let pinchDistance=0;const clampFocus=()=>{const limit=53*Math.max(1,mapLevel);focus.x=THREE.MathUtils.clamp(focus.x,-limit,limit);focus.z=THREE.MathUtils.clamp(focus.z,-limit,limit)};
 window.royal3DCamera=()=>({x:focus.x,z:focus.z,zoom,mapLevel});
-window.royal3DNextMap=()=>{if(transition)return;const next=mapLevel+1;const archive=new THREE.Group();archive.name='completed-village-'+mapLevel;scene.add(archive);
- for(const g of resourceObjects){const clone=g.clone(true);clone.userData={};clone.traverse(o=>{if(o.userData)o.userData.resource=null});archive.add(clone)}
- for(const sprite of minionObjects){archive.add(sprite.clone())}
- const layer=revealNewTerrain(next);layer.visible=true;transition={start:performance.now(),fromZoom:zoom,toZoom:Math.min(320,zoom*1.45),layer};mapLevel=next;};
+window.royal3DNextMap=snapshot=>{if(transition)return;const next=mapLevel+1;
+ archiveVillage(snapshot||{city:mapLevel,buildings:[]});
+ const layer=revealNewTerrain(next);layer.visible=true;
+ transition={start:performance.now(),fromZoom:zoom,toZoom:Math.min(320,zoom*1.45),layer};mapLevel=next;};
 renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});down=pointers.size===1?{x:e.clientX,y:e.clientY,moved:false}:null;renderer.domElement.setPointerCapture(e.pointerId)});
 renderer.domElement.addEventListener('pointermove',e=>{const p=pointers.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(pointers.size===2){const v=[...pointers.values()],d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);if(pinchDistance)zoom=THREE.MathUtils.clamp(zoom*pinchDistance/d,28,320),resize();pinchDistance=d;down=null;return}if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>7)down.moved=true;if(down?.moved){const scale=zoom/Math.max(1,host.clientHeight);focus.x-=(dx+dy)*scale*.72;focus.z+=(dx-dy)*scale*.72;clampFocus()}});
 renderer.domElement.addEventListener('pointerup',e=>{pointers.delete(e.pointerId);pinchDistance=0;if(!down)return;const d=Math.hypot(e.clientX-down.x,e.clientY-down.y);const moved=down.moved;down=null;if(d>8||moved)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(resourceObjects,true);let g=hits[0]?.object;while(g&&!g.userData.resource)g=g.parent;if(!g){const w=renderer.domElement.clientWidth,h=renderer.domElement.clientHeight;let best=36;for(const candidate of resourceObjects){const p=candidate.position.clone().add(new THREE.Vector3(0,1.4,0)).project(camera);if(p.z>1)continue;const distance=Math.hypot((p.x-pointer.x)*w/2,(p.y-pointer.y)*h/2);if(distance<best){best=distance;g=candidate}}}if(g?.userData.resource)window.royal3DCommand?.(g.userData.resource)});
