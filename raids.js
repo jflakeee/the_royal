@@ -5,7 +5,7 @@ const MODES={boss:{label:"👹 보스 몬스터",count:1,hp:1800,speed:12,damage
 function available(s){const r=init(s);return r.elapsed>=INTERVAL&&!r.attackers.length}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
  r.elapsed=0;r.wave++;r.mode=mode;const count=spec.count;
- r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0}});
+ r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));r.elapsed+=dt;
 const before=r.attackers.length;
@@ -20,10 +20,10 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
    const maxTargets=a.type==='boss'?3:a.type==='mages'?2:1;
    const radius=a.type==='mages'?230:a.type==='boss'?130:90;
    for(const m of targets.filter(m=>Math.hypot(m.x-a.x,m.y-a.y)<=radius).slice(0,maxTargets)){
-    const hit=a.type==='boss'?20:a.type==='mages'?12:4;
-    m.hp=Math.max(1,(Number(m.hp)||100)-hit);
+    const hit=a.type==='boss'?20:a.type==='mages'?(a.element==='fire'?16:a.element==='earth'?14:12):4;
+    m.hp=Math.max(1,(Number(m.hp)||100)-hit);if(a.type==='mages'&&a.element==='water')m.raidSlow=Math.max(m.raidSlow||0,3);if(a.type==='mages'&&a.element==='wind')m.raidDisplaced=(m.raidDisplaced||0)+1;
     if(m.hp<=25){m.status='critical';m.job=null}else if(m.hp<=60)m.status='wounded';
-    events.push({kind:"hit",type:a.type,damage:hit})
+    events.push({kind:"hit",type:a.type,element:a.element,damage:hit})
    }
   }
  }}
@@ -31,7 +31,10 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  if(guards.length){a.hp-=35*dt*Math.min(3,guards.length);if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
 r.attackers=r.attackers.filter(a=>a.hp>0);
-if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
+if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;
+ const reward=Math.max(2,Math.floor((MODES[r.mode]?.count||1)/8)+r.wave*2);
+ if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
+ events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
 return events}
 root.RoyalRaids={INTERVAL,MODES,init,tick,spawn,available};
 })(typeof globalThis!=="undefined"?globalThis:this);
