@@ -42,6 +42,7 @@ const assert = require('node:assert/strict');
   await page.waitForTimeout(1200);
   await page.waitForFunction(()=>/^렌더 \d+\/s \| P95 \d+ms \| 지연 \d+$/.test(document.querySelector('#royal-fps')?.textContent||''),null,{timeout:5000});
   assert.equal(await page.locator('#royal-3d').isVisible(),true);
+  await page.screenshot({path:'royal-3d-mobile.png',fullPage:true});
   assert.equal(await page.locator('#world').isVisible(),false);
   assert.equal(await page.locator('#view-toggle').isVisible(),false);
   const dimensions=await page.locator('#royal-3d canvas').evaluate(el=>({width:el.clientWidth,height:el.clientHeight}));
