@@ -15,7 +15,11 @@ function cube(parent,x,y,z,w,h,d,m){const o=new THREE.Mesh(box,m);o.position.set
 function rnd(x,z){const n=Math.sin(x*12.9898+z*78.233)*43758.5453;return n-Math.floor(n)}
 cube(terrain,0,-1.1,0,106,2,68,stone);
 const wet=new THREE.Mesh(new THREE.PlaneGeometry(106,68),water);wet.rotation.x=-Math.PI/2;wet.position.y=-.065;wet.receiveShadow=true;terrain.add(wet);
-for(let x=-51;x<52;x+=3){for(let z=-32;z<33;z+=3){const r=rnd(x,z);if(r>.28)cube(terrain,x,.04,z,2.85,.17+r*.15,2.85,r>.82?edge:stone)}}
+// Batch static floor blocks into two instanced draw calls instead of hundreds of meshes.
+const floorInstances=[[],[]];
+for(let x=-51;x<52;x+=3){for(let z=-32;z<33;z+=3){const r=rnd(x,z);if(r>.28)floorInstances[r>.82?1:0].push([x,.04,z,2.85,.17+r*.15,2.85])}}
+const floorTransform=new THREE.Object3D();
+floorInstances.forEach((tiles,i)=>{if(!tiles.length)return;const mesh=new THREE.InstancedMesh(box,i?edge:stone,tiles.length);tiles.forEach(([x,y,z,w,h,d],index)=>{floorTransform.position.set(x,y,z);floorTransform.scale.set(w,h,d);floorTransform.updateMatrix();mesh.setMatrixAt(index,floorTransform.matrix)});mesh.instanceMatrix.needsUpdate=true;mesh.receiveShadow=true;mesh.castShadow=false;mesh.computeBoundingSphere();terrain.add(mesh)});
 for(let x=-52;x<=52;x+=7){for(const z of [-34,34]){const h=2+rnd(x,z)*5;cube(terrain,x,h/2,z,3,h,3,stone)}}
 for(let z=-31;z<=31;z+=7){for(const x of [-53,53]){const h=2+rnd(x,z)*5;cube(terrain,x,h/2,z,3,h,3,stone)}}
 for(let i=0;i<22;i++){const a=i*2.399,r=37+i%5*2,x=Math.cos(a)*r,z=Math.sin(a)*r*.65,h=3+rnd(i,4)*7;cube(terrain,x,h/2,z,2,h,2,stone);cube(terrain,x,h+.25,z,3,.5,3,edge)}
