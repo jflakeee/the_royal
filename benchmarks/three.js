@@ -1,0 +1,18 @@
+// Identical seeded scene data for all renderers. Metrics are measured on the client, not simulated.
+const stage=document.querySelector('#stage'),stats=document.querySelector('#stats');
+const params=new URLSearchParams(location.search);
+for(const id of ['units','resources','buildings']){if(params.has(id))document.getElementById(id).value=params.get(id)}
+document.getElementById('restart').onclick=()=>{const q=new URLSearchParams();for(const id of ['units','resources','buildings'])q.set(id,document.getElementById(id).value);location.search=q.toString()};
+function data(){let seed=17;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);const count=id=>Math.max(0,Math.min(Number(document.getElementById(id).max),Number(document.getElementById(id).value)||0));const make=(n)=>Array.from({length:count(n)},(_,i)=>({x:rand()*900-450,y:rand()*600-300,phase:rand()*6.28,id:i}));return {units:make('units'),resources:make('resources'),buildings:make('buildings')}}
+function meter(extra=()=>({})){let last=0,start=0,frames=0,dt=[];return function(t){if(last){dt.push(t-last);if(dt.length>240)dt.shift()}last=t;frames++;if(!start)start=t;if(t-start>=2000){const sorted=[...dt].sort((a,b)=>a-b);const p95=sorted[Math.floor((sorted.length-1)*.95)]||0;const e=extra();stats.textContent='렌더 호출/초: '+(frames*1000/(t-start)).toFixed(1)+' | P95: '+p95.toFixed(1)+'ms | 지연>50ms: '+dt.filter(x=>x>50).length+' / '+dt.length+'\n'+JSON.stringify(e)+'\n동일 시드·수량 / 2초 갱신 / 기기별 직접 비교 필요';start=t;frames=0}}}
+const sceneData=data();
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+document.querySelector('#engine').textContent='Three.js · WebGL · 3D';
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1));stage.append(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x192c39);const camera=new THREE.OrthographicCamera(-55,55,40,-40,.1,1000);camera.position.set(65,90,65);camera.lookAt(0,0,0);scene.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
+const box=new THREE.BoxGeometry(1,1,1);const mats=[0x6ba16f,0x9fbc6b,0xc7a26d].map(color=>new THREE.MeshLambertMaterial({color}));
+const all=[sceneData.units,sceneData.resources,sceneData.buildings];const meshes=all.map((items,k)=>{const mesh=new THREE.InstancedMesh(box,mats[k],items.length);mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(mesh);return mesh});const obj=new THREE.Object3D();
+function fill(t){all.forEach((items,k)=>{const mesh=meshes[k];items.forEach((p,i)=>{obj.position.set(p.x*.11,k===2?2:1,p.y*.11);if(k===0)obj.position.x+=Math.sin(t*.001+p.phase)*.6;const size=k===2?[3,4,3]:k===1?[1.4,2,1.4]:[.65,1.8,.65];obj.scale.set(...size);obj.updateMatrix();mesh.setMatrixAt(i,obj.matrix)});mesh.instanceMatrix.needsUpdate=true})}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.left=-55*w/h;camera.right=55*w/h;camera.top=55;camera.bottom=-55;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(stage);resize();
+const tick=meter(()=>({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,units:all[0].length,resources:all[1].length,buildings:all[2].length}));
+function frame(t){fill(t);renderer.render(scene,camera);tick(t);requestAnimationFrame(frame)}requestAnimationFrame(frame);
