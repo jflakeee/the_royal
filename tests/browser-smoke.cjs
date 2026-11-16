@@ -21,6 +21,16 @@ const assert = require('node:assert/strict');
   const layout=await page.evaluate(()=>({viewport:innerWidth,body:document.body.scrollWidth,queue:!!document.querySelector('#queue-select'),warning:!!document.querySelector('#save-warning')}));
   assert.ok(layout.body<=layout.viewport+2,'horizontal overflow: '+JSON.stringify(layout));
   assert.ok(layout.queue&&layout.warning);
+  assert.equal(await page.locator('#queue-select select').count(),0,'queue must use buttons, not native dropdown');
+  await page.evaluate(()=>{s.queue=[{type:0,x:100,y:100},{type:1,x:200,y:200}];syncQueue()});
+  assert.equal(await page.locator('#queue-select button').count(),2);
+  await page.locator('#queue-select button').nth(1).click();
+  assert.equal(await page.locator('#queue-select button').nth(1).getAttribute('aria-pressed'),'true');
+  await page.locator('#queue-first').click();
+  assert.equal(await page.evaluate(()=>s.queue[0].type),1);
+  await page.locator('#queue-cancel').click();
+  assert.equal(await page.evaluate(()=>s.queue.length),1);
+  await page.evaluate(()=>{s.queue=[];syncQueue()});
   // Force localStorage writes to fail in the actual page, then recover.
   const failure=await page.evaluate(()=>{
     const original=Storage.prototype.setItem;
