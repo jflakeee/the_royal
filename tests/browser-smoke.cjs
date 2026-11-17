@@ -104,6 +104,25 @@ const assert = require('node:assert/strict');
     assert.ok(measure.body<=measure.viewport+2,'responsive overflow '+JSON.stringify(measure));
   }
   console.log('PASS responsive layout at 320, 375, 390 and 768 CSS px');
+  // Final defense: use a controlled state and a low-HP enemy to test progression,
+  // not the full combat balance or real-time duration.
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>{s.cityLevel=14;s.raids={elapsed:9999,wave:0,attackers:[]};s.autoGather=false;updateRaidButton()});
+  assert.equal(await page.locator('#raid-open').isDisabled(),true);
+  await page.evaluate(()=>{s.cityLevel=15;updateRaidButton()});
+  assert.equal(await page.locator('#raid-open').isDisabled(),false);
+  assert.equal(await page.evaluate(()=>s.raids.attackers.length),0);
+  await page.locator('#raid-open').click();
+  await page.locator('[data-raid-mode="boss"]').click();
+  assert.equal(await page.evaluate(()=>s.raids.attackers.length),1);
+  assert.equal(await page.locator('#raid-open').isDisabled(),true);
+  const city=await page.evaluate(()=>{const city=s.city;s.buildings.push({id:'test-tower',type:'watchtower'});s.raids.attackers[0].hp=.01;update(.1);return city});
+  await page.waitForFunction(()=>s.endingComplete);
+  assert.equal(await page.evaluate(()=>s.raids.completedCity),city);
+  await page.locator('#city-continue').click();
+  assert.equal(await page.evaluate(()=>s.city),city+1);
+  assert.equal(await page.evaluate(()=>RoyalRaids.available(s)),false);
+  console.log('PASS expansion unlock, manual raid, controlled clear and next city');
   assert.deepEqual(errors,[]);
   console.log('PASS Chromium reload persistence and 390px mobile layout');
  }finally{await browser.close()}
