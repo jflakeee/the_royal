@@ -50,6 +50,14 @@ function characterTexture(kind){
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.NearestFilter;return texture
 }
 const characterMaterials={minion:new THREE.SpriteMaterial({map:characterTexture('minion'),transparent:true,depthTest:true}),animal:new THREE.SpriteMaterial({map:characterTexture('animal'),transparent:true,depthTest:true})};
+const raidBars={};
+function raidBarMaterial(hp){
+ const step=Math.max(0,Math.min(10,Math.ceil(hp*10)));
+ if(raidBars[step])return raidBars[step];
+ const canvas=document.createElement('canvas');canvas.width=64;canvas.height=12;const c=canvas.getContext('2d');
+ c.fillStyle='#1d2028';c.fillRect(0,0,64,12);c.fillStyle=step>5?'#70d67b':step>2?'#f0bf52':'#ef5454';c.fillRect(2,2,60*step/10,8);
+ const map=new THREE.CanvasTexture(canvas);map.magFilter=THREE.NearestFilter;return raidBars[step]=new THREE.SpriteMaterial({map,transparent:true,depthTest:true});
+}
 const raidMaterials={};
 function raidMaterial(r){
  const key=r.type==='mages'?'mage-'+(r.element||'fire'):r.type;
@@ -92,7 +100,7 @@ function finishTransition(){
  scene.remove(transition.oldActors);
  transition=null;zoom=startingZoom;focus.set(0,1,0);actors.visible=true;resize();
 }
-function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});const raiders=s.raids?.attackers||[];while(raiderObjects.length>raiders.length)actors.remove(raiderObjects.pop());raiders.forEach((r,i)=>{if(!raiderObjects[i]){raiderObjects[i]=new THREE.Sprite(raidMaterial(r));actors.add(raiderObjects[i])}const sprite=raiderObjects[i];sprite.material=raidMaterial(r);const size=r.type==='boss'?2.4:r.type==='zombies'?.78:1;sprite.scale.set(2.5*size,3.75*size,1);const [x,z]=xy(r.x,r.y);sprite.position.set(x,1.85*size,z)});}
+function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});const raiders=s.raids?.attackers||[];while(raiderObjects.length>raiders.length)actors.remove(raiderObjects.pop());raiders.forEach((r,i)=>{if(!raiderObjects[i]){raiderObjects[i]=new THREE.Group();const body=new THREE.Sprite(raidMaterial(r)),bar=new THREE.Sprite(raidBarMaterial(1));raiderObjects[i].add(body,bar);actors.add(raiderObjects[i])}const group=raiderObjects[i],sprite=group.children[0],bar=group.children[1];sprite.material=raidMaterial(r);const size=r.type==='boss'?2.4:r.type==='zombies'?.78:1;sprite.scale.set(2.5*size,3.75*size,1);sprite.position.set(0,1.85*size,0);const max=(globalThis.RoyalRaids?.MODES[r.type]?.hp||r.hp)+(s.raids.wave||0)*3;bar.material=raidBarMaterial(r.hp/max);bar.scale.set(2.2*size,.32*size,1);bar.position.set(0,3.9*size,0);bar.visible=r.type!=='zombies'||r.hp<max;const [x,z]=xy(r.x,r.y);group.position.set(x,0,z)});}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
 const pointers=new Map();let pinchDistance=0;const clampFocus=()=>{const limit=53*Math.max(1,mapLevel);focus.x=THREE.MathUtils.clamp(focus.x,-limit,limit);focus.z=THREE.MathUtils.clamp(focus.z,-limit,limit)};
 window.royal3DCamera=()=>({x:focus.x,z:focus.z,zoom,mapLevel});
