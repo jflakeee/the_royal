@@ -10,6 +10,7 @@ function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));
 for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
 const before=r.attackers.length;
+let towerFx=null;
 for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.raiders;
  const dx=415-a.x,dy=265-a.y,d=Math.hypot(dx,dy);
  const range=a.type==='mages'?175:a.type==='boss'?42:24;
@@ -26,15 +27,16 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
     if(a.type==='mages'&&a.element==='wind'){const vx=m.x-415,vy=m.y-265,len=Math.hypot(vx,vy)||1;m.x+=vx/len*16;m.y+=vy/len*16}
     if(a.type==='mages'&&a.element==='lightning')m.raidStun=Math.max(m.raidStun||0,1.5);
     if(m.hp<=25){m.status='critical';m.job=null}else if(m.hp<=60)m.status='wounded';
-    events.push({kind:"hit",type:a.type,element:a.element,damage:hit})
+    events.push({kind:"hit",type:a.type,element:a.element,damage:hit,from:{x:a.x,y:a.y},to:{x:m.x,y:m.y}})
    }
   }
  }}
  const guards=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter'&&Math.hypot(m.x-a.x,m.y-a.y)<150);
  const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').length;
  const defense=(guards.length?35*Math.min(3,guards.length):0)+Math.min(6,towers)*24;
- if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
+ if(towers>0&&!towerFx){towerFx=a}if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
+if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:{x:415,y:265},to:{x:towerFx.x,y:towerFx.y}})}}
 r.attackers=r.attackers.filter(a=>a.hp>0);
 if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;r.completedCity=s.city;
  const reward=Math.max(2,Math.floor((MODES[r.mode]?.count||1)/8)+r.wave*2);
