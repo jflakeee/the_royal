@@ -50,6 +50,25 @@ function characterTexture(kind){
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.NearestFilter;return texture
 }
 const characterMaterials={minion:new THREE.SpriteMaterial({map:characterTexture('minion'),transparent:true,depthTest:true}),animal:new THREE.SpriteMaterial({map:characterTexture('animal'),transparent:true,depthTest:true})};
+const raidMaterials={};
+function raidMaterial(r){
+ const key=r.type==='mages'?'mage-'+(r.element||'fire'):r.type;
+ if(raidMaterials[key])return raidMaterials[key];
+ const canvas=document.createElement('canvas');canvas.width=64;canvas.height=96;
+ const c=canvas.getContext('2d'),colors={fire:'#e95c36',water:'#479ce5',wind:'#a4d8c8',earth:'#a88751',lightning:'#d8bf42'};
+ const mage=r.type==='mages',boss=r.type==='boss',zombie=r.type==='zombies';
+ c.fillStyle='#0005';c.fillRect(13,88,38,5);
+ c.fillStyle=boss?'#742b39':zombie?'#527a48':mage?(colors[r.element]||colors.fire):'#8d5a43';
+ c.fillRect(17,43,30,35);c.fillRect(17,76,12,12);c.fillRect(35,76,12,12);
+ c.fillStyle=zombie?'#9ab879':boss?'#b85c57':'#d5ab82';c.fillRect(19,20,26,27);
+ c.fillStyle='#20202a';c.fillRect(24,30,5,5);c.fillRect(36,30,5,5);
+ if(boss){c.fillStyle='#e3d3a1';c.fillRect(10,6,8,24);c.fillRect(46,6,8,24);c.fillRect(17,46,30,7)}
+ else if(mage){c.fillStyle=colors[r.element]||colors.fire;c.beginPath();c.moveTo(15,22);c.lineTo(32,2);c.lineTo(49,22);c.fill();c.fillRect(51,36,4,48);c.fillRect(47,27,12,12)}
+ else if(zombie){c.fillStyle='#77975e';c.fillRect(4,47,15,9);c.fillRect(45,47,15,9)}
+ else{c.fillStyle='#b7bcc0';c.fillRect(15,15,34,9);c.fillRect(51,31,5,40);c.fillRect(46,60,15,5)}
+ const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;map.magFilter=THREE.NearestFilter;map.minFilter=THREE.NearestFilter;
+ return raidMaterials[key]=new THREE.SpriteMaterial({map,transparent:true,depthTest:true});
+}
 function character(kind){const sprite=new THREE.Sprite(characterMaterials[kind]);sprite.scale.set(2.5,3.75,1);sprite.position.y=1.85;actors.add(sprite);return sprite}
 function minion(m){const sprite=character('minion');const [x,z]=xy(m.x,m.y);sprite.position.set(x,1.85,z);return sprite}
 let raiderObjects=[],resourceObjects=[],minionObjects=[],animalObjects=[],focus=new THREE.Vector3(0,1,0),lastSync=0,resourceSignature='';let mapLevel=1,transition=null;
@@ -73,7 +92,7 @@ function finishTransition(){
  scene.remove(transition.oldActors);
  transition=null;zoom=startingZoom;focus.set(0,1,0);actors.visible=true;resize();
 }
-function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});const raiders=s.raids?.attackers||[];while(raiderObjects.length>raiders.length)actors.remove(raiderObjects.pop());raiders.forEach((r,i)=>{if(!raiderObjects[i]){raiderObjects[i]=character('animal');raiderObjects[i].material=characterMaterials.animal.clone();raiderObjects[i].material.color.setHex(0xff6464)}const [x,z]=xy(r.x,r.y);raiderObjects[i].position.set(x,1.7,z)});}
+function sync(){const s=state();if(!s)return;const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});const raiders=s.raids?.attackers||[];while(raiderObjects.length>raiders.length)actors.remove(raiderObjects.pop());raiders.forEach((r,i)=>{if(!raiderObjects[i]){raiderObjects[i]=new THREE.Sprite(raidMaterial(r));actors.add(raiderObjects[i])}const sprite=raiderObjects[i];sprite.material=raidMaterial(r);const size=r.type==='boss'?2.4:r.type==='zombies'?.78:1;sprite.scale.set(2.5*size,3.75*size,1);const [x,z]=xy(r.x,r.y);sprite.position.set(x,1.85*size,z)});}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
 const pointers=new Map();let pinchDistance=0;const clampFocus=()=>{const limit=53*Math.max(1,mapLevel);focus.x=THREE.MathUtils.clamp(focus.x,-limit,limit);focus.z=THREE.MathUtils.clamp(focus.z,-limit,limit)};
 window.royal3DCamera=()=>({x:focus.x,z:focus.z,zoom,mapLevel});
