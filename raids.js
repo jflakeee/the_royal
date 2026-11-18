@@ -5,7 +5,7 @@ const MODES={boss:{label:"👹 보스 몬스터",count:1,hp:1800,speed:12,damage
 const REWARDS={boss:24,raiders:28,mages:22,zombies:44};
 function available(s){const r=init(s);return (root.RoyalCore?.cityCoverage(s)??(Math.max(s.cityLevel||0,(s.buildings||[]).length)/15))>=1&&!r.attackers.length&&r.completedCity!==s.city&&!s.endingComplete}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
- r.wave++;r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;const count=spec.count;
+ r.wave++;r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 const TOWER_RANGE=240;
@@ -29,7 +29,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  if(d>range){const speed=spec.speed*dt;a.x+=dx/d*Math.min(d-range,speed);a.y+=dy/d*Math.min(d-range,speed)}
  else{a.cooldown-=dt;if(a.cooldown<=0){
   a.cooldown=a.type==='mages'?2.4:a.type==='boss'?4:a.type==='zombies'?4.5:3;
-  if(a.type==='raiders'){const key=RESOURCE_KEYS.find(k=>s.stock?.[k]>0);if(key){const amount=Math.min(s.stock[key],spec.damage);s.stock[key]-=amount;r.stolen+=amount;events.push({kind:"stolen",key,amount})}}
+  if(a.type==='raiders'){const key=RESOURCE_KEYS.find(k=>s.stock?.[k]>0);if(key){const amount=Math.min(s.stock[key],spec.damage,Math.max(0,(r.lootBudget??Infinity)-r.stolen));if(amount>0){s.stock[key]-=amount;r.stolen+=amount;events.push({kind:"stolen",key,amount})}}}
   else{const targets=(s.minions||[]).filter(m=>m.status==='healthy'||m.status==='wounded').sort((m,n)=>Math.hypot(m.x-a.x,m.y-a.y)-Math.hypot(n.x-a.x,n.y-a.y));
    const maxTargets=a.type==='boss'?3:a.type==='mages'?2:1;
    const radius=a.type==='mages'?230:a.type==='boss'?130:90;
