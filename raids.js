@@ -7,15 +7,21 @@ function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))
  r.wave++;r.mode=mode;const count=spec.count;
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
+const TOWER_RANGE=240;
+function towerPosition(b,i){if(Number.isFinite(b.x)&&Number.isFinite(b.y))return {x:b.x,y:b.y};const angle=i*Math.PI/3;return {x:415+Math.cos(angle)*60,y:265+Math.sin(angle)*60}}
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));
 for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
 const before=r.attackers.length;
-const towers=Math.min(6,(s.buildings||[]).filter(b=>b.type==='watchtower').length);
+const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').slice(0,6);
 const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter');
-const towerTargets=r.attackers.filter(a=>a.hp>0).sort((a,b)=>Math.hypot(a.x-415,a.y-265)-Math.hypot(b.x-415,b.y-265)).slice(0,towers);
-const towerDamage=new Map(towerTargets.map(a=>[a,24]));
-if(towerTargets.length===1)towerDamage.set(towerTargets[0],24*towers);
+const towerDamage=new Map();
 let towerFx=null;
+for(let i=0;i<towers.length;i++){
+ const t=towerPosition(towers[i],i);
+ let best=null,dist=TOWER_RANGE*TOWER_RANGE;
+ for(const a of r.attackers){if(a.hp<=0)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
+ if(best){towerDamage.set(best,(towerDamage.get(best)||0)+24);if(!towerFx)towerFx={from:t,to:best}}
+}
 for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.raiders;
  const dx=415-a.x,dy=265-a.y,d=Math.hypot(dx,dy);
  const range=a.type==='mages'?175:a.type==='boss'?42:24;
@@ -39,14 +45,14 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  let guards=0;for(const m of hunters){if(m.status==='healthy'&&(m.x-a.x)**2+(m.y-a.y)**2<22500&&++guards===3)break}
  const towerHit=towerDamage.get(a)||0;
  const defense=35*guards+towerHit;
- if(towerHit&&!towerFx){towerFx=a}if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
+ if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
-if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:{x:415,y:265},to:{x:towerFx.x,y:towerFx.y}})}}
+if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:towerFx.from,to:{x:towerFx.to.x,y:towerFx.to.y}})}}
 r.attackers=r.attackers.filter(a=>a.hp>0);
 if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;r.completedCity=s.city;
  const reward=Math.max(2,Math.floor((MODES[r.mode]?.count||1)/8)+r.wave*2);
  if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
  events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
 return events}
-root.RoyalRaids={MODES,init,tick,spawn,available};
+root.RoyalRaids={MODES,init,tick,spawn,available,towerPosition,TOWER_RANGE};
 })(typeof globalThis!=="undefined"?globalThis:this);
