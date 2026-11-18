@@ -13,6 +13,7 @@ function towerPosition(b,i){if(Number.isFinite(b.x)&&Number.isFinite(b.y))return
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));
 for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
 const before=r.attackers.length;
+for(const m of s.minions||[]){if(m.role!=='hunter'||m.status!=='wounded'||m.job||m.raidStun>0)continue;const dx=415-m.x,dy=265-m.y,d=Math.hypot(dx,dy);if(d>5){const step=Math.min(d,65*dt*(m.raidSlow>0?.45:1));m.x+=dx/d*step;m.y+=dy/d*step}}
 const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').slice(0,6);
 const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter');
 const towerDamage=new Map();
@@ -46,7 +47,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
     m.hp=Math.max(1,(Number(m.hp)||100)-hit);if(a.type==='mages'&&a.element==='water')m.raidSlow=Math.max(m.raidSlow||0,3);
     if(a.type==='mages'&&a.element==='wind'){const vx=m.x-415,vy=m.y-265,len=Math.hypot(vx,vy)||1;m.x+=vx/len*16;m.y+=vy/len*16}
     if(a.type==='mages'&&a.element==='lightning')m.raidStun=Math.max(m.raidStun||0,1.5);
-    if(m.hp<=25){m.status='critical';m.job=null}else if(m.hp<=60)m.status='wounded';
+    if(m.hp<=25){m.status='critical';if(root.RoyalRescue)root.RoyalRescue.requeue(s,m);else m.job=null}else if(m.hp<=60)m.status='wounded';
     events.push({kind:"hit",type:a.type,element:a.element,damage:hit,from:{x:a.x,y:a.y},to:{x:m.x,y:m.y}})
    }
   }
