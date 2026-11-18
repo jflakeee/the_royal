@@ -17,7 +17,7 @@ const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter')
 const towerDamage=new Map();
 let towerFx=null;
 for(let i=0;i<towers.length;i++){
- const t=towerPosition(towers[i],i);
+ const t=root.RoyalCore?.buildingPosition(towers[i],s.buildings.indexOf(towers[i]))||towerPosition(towers[i],i);
  let best=null,dist=TOWER_RANGE*TOWER_RANGE;
  for(const a of r.attackers){if(a.hp<=0)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
  if(best){towerDamage.set(best,(towerDamage.get(best)||0)+24);if(!towerFx)towerFx={from:t,to:best}}
