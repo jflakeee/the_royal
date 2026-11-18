@@ -23,6 +23,13 @@ for(let i=0;i<towers.length;i++){
  for(const a of r.attackers){if(a.hp<=0)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
  if(best){towerDamage.set(best,(towerDamage.get(best)||0)+24);if(!towerFx)towerFx={from:t,to:best}}
 }
+const hunterTargets=new Map();
+for(const m of hunters){
+ if(m.raidStun>0)continue;
+ let best=null,dist=22500;
+ for(const a of r.attackers){if(a.hp<=0)continue;const d=(m.x-a.x)**2+(m.y-a.y)**2;if(d<dist){best=a;dist=d}}
+ if(best){if(!hunterTargets.has(best))hunterTargets.set(best,[]);hunterTargets.get(best).push(m)}
+}
 for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.raiders;
  const dx=415-a.x,dy=265-a.y,d=Math.hypot(dx,dy);
  const range=a.type==='mages'?175:a.type==='boss'?42:24;
@@ -43,7 +50,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
    }
   }
  }}
- let guards=0;for(const m of hunters){if(m.status==='healthy'&&(m.x-a.x)**2+(m.y-a.y)**2<22500&&++guards===3)break}
+ const guards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!(m.raidStun>0)).length;
  const towerHit=towerDamage.get(a)||0;
  const defense=35*guards+towerHit;
  if(defense>0){a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
