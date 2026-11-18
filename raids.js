@@ -5,7 +5,7 @@ const MODES={boss:{label:"👹 보스 몬스터",count:1,hp:1800,speed:12,damage
 const REWARDS={boss:24,raiders:28,mages:22,zombies:44};
 function available(s){const r=init(s);return (root.RoyalCore?.cityCoverage(s)??(Math.max(s.cityLevel||0,(s.buildings||[]).length)/15))>=1&&!r.attackers.length&&r.completedCity!==s.city&&!s.endingComplete}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
- r.wave++;r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
+ r.wave++;r.battleTime=0;r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 const TOWER_RANGE=240;
@@ -60,9 +60,10 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
 if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:towerFx.from,to:{x:towerFx.to.x,y:towerFx.to.y}})}}
 r.attackers=r.attackers.filter(a=>a.hp>0);
 if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;r.completedCity=s.city;
- const reward=(REWARDS[r.mode]||8)+Math.max(0,r.wave-1)*2;
+ const reward=(REWARDS[r.mode]||8)+Math.max(0,r.wave-1-(r.failed||0))*2;
  if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
  events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
+if(r.attackers.length){r.battleTime=(Number(r.battleTime)||0)+dt;if(r.battleTime>=300){r.failed=(r.failed||0)+1;r.attackers=[];events.push({kind:'failed',mode:r.mode,wave:r.wave,stolen:r.stolen})}}
 return events}
 root.RoyalRaids={MODES,REWARDS,init,tick,spawn,available,towerPosition,TOWER_RANGE};
 })(typeof globalThis!=="undefined"?globalThis:this);
