@@ -21,14 +21,14 @@ let towerFx=null;
 for(let i=0;i<towers.length;i++){
  const t=root.RoyalCore?.buildingPosition(towers[i],s.buildings.indexOf(towers[i]))||towerPosition(towers[i],i);
  let best=null,dist=TOWER_RANGE*TOWER_RANGE;
- for(const a of r.attackers){if(a.hp<=0)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
+ for(const a of r.attackers){if(a.hp<=0||a.hp<=(towerDamage.get(a)||0)*dt)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
  if(best){towerDamage.set(best,(towerDamage.get(best)||0)+24);if(!towerFx)towerFx={from:t,to:best}}
 }
 const hunterTargets=new Map();
 for(const m of hunters){
  if(m.raidStun>0)continue;
  let best=null,dist=Infinity;
- for(const a of r.attackers){if(a.hp<=0)continue;const d=(m.x-a.x)**2+(m.y-a.y)**2;if(d<dist){best=a;dist=d}}
+ for(const a of r.attackers){if(a.hp<=0||a.hp<=((towerDamage.get(a)||0)+35*(hunterTargets.get(a)?.length||0))*dt)continue;const d=(m.x-a.x)**2+(m.y-a.y)**2;if(d<dist){best=a;dist=d}}
  if(best&&!m.job){const dx=best.x-m.x,dy=best.y-m.y,d=Math.hypot(dx,dy);if(d>115){const step=Math.min(d-115,65*dt*(m.raidSlow>0?.45:1));m.x=Math.max(20,Math.min(780,m.x+dx/d*step));m.y=Math.max(20,Math.min(460,m.y+dy/d*step))}}
  if(best&&(m.x-best.x)**2+(m.y-best.y)**2<22500){if(!hunterTargets.has(best))hunterTargets.set(best,[]);hunterTargets.get(best).push(m)}
 }
