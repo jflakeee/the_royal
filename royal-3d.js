@@ -123,7 +123,7 @@ function syncBuildings(s){
  let towerIndex=0,slot=0;
  for(const b of list){
   const tower=b.type==='watchtower',i=slot++,angle=i*2.399963,r=12+Math.floor(i/5)*5;
-  const fallback=tower?globalThis.RoyalRaids?.towerPosition(b,towerIndex++):null;
+  const fallback=globalThis.RoyalCore?.buildingPosition(b,i);if(tower)towerIndex++;
   const p=Number.isFinite(b.x)&&Number.isFinite(b.y)?xy(b.x,b.y):fallback?xy(fallback.x,fallback.y):[Math.cos(angle)*r,Math.sin(angle)*r*.72];
   const g=new THREE.Group();g.position.set(p[0],0,p[1]);cityBuildings.add(g);
   if(tower){cube(g,0,2.7,0,2,5.4,2,stone);cube(g,0,5.5,0,3.1,.6,3.1,wood);for(const x of [-1.2,1.2])for(const z of [-1.2,1.2])cube(g,x,6, z,.45,.7,.45,edge)}
