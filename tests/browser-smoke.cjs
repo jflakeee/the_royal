@@ -116,7 +116,7 @@ const assert = require('node:assert/strict');
   await page.locator('[data-raid-mode="boss"]').click();
   assert.equal(await page.evaluate(()=>s.raids.attackers.length),1);
   assert.equal(await page.locator('#raid-open').isDisabled(),true);
-  const city=await page.evaluate(()=>{const city=s.city;s.buildings.push({id:'test-tower',type:'watchtower'});s.raids.attackers[0].hp=.01;update(.1);return city});
+  const city=await page.evaluate(()=>{const city=s.city;s.buildings.push({id:'test-tower',type:'watchtower'});s.raids.attackers[0].x=475;s.raids.attackers[0].y=265;s.raids.attackers[0].hp=.01;update(.1);return city});
   await page.waitForFunction(()=>s.endingComplete);
   assert.equal(await page.evaluate(()=>s.raids.completedCity),city);
   await page.locator('#city-continue').click();
