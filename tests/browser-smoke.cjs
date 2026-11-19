@@ -104,6 +104,16 @@ const assert = require('node:assert/strict');
     assert.ok(measure.body<=measure.viewport+2,'responsive overflow '+JSON.stringify(measure));
   }
   console.log('PASS responsive layout at 320, 375, 390 and 768 CSS px');
+  // Compare identical viewport and static fixtures; CI software GPU is not a phone benchmark.
+  await page.setViewportSize({width:390,height:844});
+  const idlePerf=await page.evaluate(async()=>{await new Promise(r=>setTimeout(r,3200));return window.royal3DPerf()});
+  await page.evaluate(()=>{window.royalPerfFixture={raids:s.raids,cityLevel:s.cityLevel,autoGather:s.autoGather};s.cityLevel=15;s.autoGather=false;s.raids={wave:0,attackers:[]};RoyalRaids.spawn(s,'zombies')});
+  await page.waitForTimeout(3600);
+  const wavePerf=await page.evaluate(()=>({count:s.raids.attackers.length,...window.royal3DPerf()}));
+  console.log('INFO performance baseline (CI renderer, 390x844)',JSON.stringify({idle:idlePerf,zombies:wavePerf}));
+  assert.equal(wavePerf.count,180);
+  assert.ok(wavePerf.drawCalls>0&&Number.isFinite(wavePerf.p95Ms)&&wavePerf.samples>0);
+  await page.evaluate(()=>{Object.assign(s,window.royalPerfFixture);delete window.royalPerfFixture});
   // Final defense: use a controlled state and a low-HP enemy to test progression,
   // not the full combat balance or real-time duration.
   await page.setViewportSize({width:390,height:844});
