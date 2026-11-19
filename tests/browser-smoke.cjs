@@ -129,6 +129,8 @@ const assert = require('node:assert/strict');
   assert.equal(await page.locator('#city-continue').isVisible(),true,'saved victory must restore ending UI');
   assert.deepEqual(await page.evaluate(()=>({...s.stock})),victoryStock,'reload must not grant victory reward twice');
   await page.locator('#city-continue').click();
+  assert.equal(await page.locator('#city-arrival').isVisible(),true);
+  assert.match(await page.locator('#city-arrival').innerText(),/도시 개척/);
   assert.equal(await page.evaluate(()=>s.city),city+1);
   assert.equal(await page.evaluate(()=>RoyalRaids.available(s)),false);
   console.log('PASS expansion unlock, manual raid, controlled clear and next city');
