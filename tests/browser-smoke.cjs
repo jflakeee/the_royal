@@ -85,6 +85,18 @@ const assert = require('node:assert/strict');
   assert.ok(dimensions.width>=380&&dimensions.height>=840,'3D canvas should fill the mobile viewport');
   const perf=await page.evaluate(()=>window.royal3DPerf());
   assert.ok(perf.samples>0&&Number.isFinite(perf.averageMs)&&perf.drawCalls>0,'3D renderer must produce frames');
+  // Exercise the actual renderer pool across repeated bursts, including mixed materials.
+  for(let round=0;round<3;round++){
+    const burst=await page.evaluate(()=>{for(let i=0;i<20;i++)window.royal3DRaidFx({kind:'defeated',type:'boss',at:{x:415,y:265}});return window.royal3DFxStats()});
+    assert.equal(burst.active,40);assert.equal(burst.allocated,40);
+    await page.waitForFunction(()=>window.royal3DFxStats().active===0,null,{timeout:15000});
+    const drained=await page.evaluate(()=>window.royal3DFxStats());
+    assert.deepEqual(drained,{active:0,pooled:40,allocated:40});
+    const reused=await page.evaluate(()=>{window.royal3DRaidFx({kind:'hunterFx',from:{x:400,y:265},to:{x:450,y:265}});return window.royal3DFxStats()});
+    assert.deepEqual(reused,{active:1,pooled:39,allocated:40});
+    await page.waitForFunction(()=>window.royal3DFxStats().active===0,null,{timeout:15000});
+  }
+  console.log('PASS raid particle pool: bounded allocation and repeated reuse');
   const candidate=await page.evaluate(()=>window.royal3DVisibleResources().find(o=>o.type===0)||window.royal3DVisibleResources()[0]);
   assert.ok(candidate,'at least one resource must be visible');
   await page.evaluate(()=>{s.minions.forEach(m=>m.job=null);s.queue=[];s.autoGather=false});
@@ -104,6 +116,20 @@ const assert = require('node:assert/strict');
     assert.ok(measure.body<=measure.viewport+2,'responsive overflow '+JSON.stringify(measure));
   }
   console.log('PASS responsive layout at 320, 375, 390 and 768 CSS px');
+  // Compare identical viewport and static fixtures; CI software GPU is not a phone benchmark.
+  await page.setViewportSize({width:390,height:844});
+  const idlePerf=await page.evaluate(async()=>{await new Promise(r=>setTimeout(r,3200));return window.royal3DPerf()});
+  await page.evaluate(()=>{window.royalPerfFixture={raids:s.raids,cityLevel:s.cityLevel,autoGather:s.autoGather};s.cityLevel=15;s.autoGather=false;s.raids={wave:0,attackers:[]};RoyalRaids.spawn(s,'zombies')});
+  await page.waitForTimeout(3600);
+  const wavePerf=await page.evaluate(()=>({count:s.raids.attackers.length,...window.royal3DPerf()}));
+  console.log('INFO performance baseline (CI renderer, 390x844)',JSON.stringify({idle:idlePerf,zombies:wavePerf}));
+  assert.equal(wavePerf.count,180);
+  assert.ok(wavePerf.drawCalls>0&&Number.isFinite(wavePerf.p95Ms)&&wavePerf.samples>0);
+  await page.evaluate(()=>{Object.assign(s,window.royalPerfFixture);delete window.royalPerfFixture});
+  // Expanded city fixture: 15 buildings and 24 minions, isolated from progression state.
+  const expanded=await page.evaluate(async()=>{const old={buildings:s.buildings,minions:s.minions,autoGather:s.autoGather};try{s.autoGather=false;s.buildings=Array.from({length:15},(_,i)=>({id:'perf-'+i,type:'watchtower'}));s.minions=Array.from({length:24},(_,i)=>({...old.minions[0],id:'perf-m-'+i,x:280+(i%6)*40,y:180+Math.floor(i/6)*40,job:null,status:'healthy'}));await new Promise(r=>setTimeout(r,4000));return {buildings:s.buildings.length,minions:s.minions.length,...window.royal3DPerf()}}finally{Object.assign(s,old);save()}});
+  console.log('INFO expanded city performance',JSON.stringify(expanded));
+  assert.equal(expanded.buildings,15);assert.equal(expanded.minions,24);
   // Final defense: use a controlled state and a low-HP enemy to test progression,
   // not the full combat balance or real-time duration.
   await page.setViewportSize({width:390,height:844});
@@ -119,7 +145,18 @@ const assert = require('node:assert/strict');
   const city=await page.evaluate(()=>{const city=s.city;s.buildings.push({id:'test-tower',type:'watchtower'});s.raids.attackers[0].x=475;s.raids.attackers[0].y=265;s.raids.attackers[0].hp=.01;update(.1);return city});
   await page.waitForFunction(()=>s.endingComplete);
   assert.equal(await page.evaluate(()=>s.raids.completedCity),city);
+  assert.equal(await page.locator('#city-ending .battle-feedback[data-status="clear"]').count(),1);
+  assert.equal(await page.locator('#city-ending .battle-share').getAttribute('aria-label'),'감시탑 100%, 사냥꾼 0%');
+  assert.equal(await page.locator('#city-ending .raid-rewards span').count(),2);
+  assert.match(await page.locator('#city-ending .raid-rewards').innerText(),/목재 \+24/);
+  const victoryStock=await page.evaluate(()=>({...s.stock}));
+  await page.reload();
+  await page.waitForFunction(()=>window.royal3DState?.()?.endingComplete===true);
+  assert.equal(await page.locator('#city-continue').isVisible(),true,'saved victory must restore ending UI');
+  assert.deepEqual(await page.evaluate(()=>({...s.stock})),victoryStock,'reload must not grant victory reward twice');
   await page.locator('#city-continue').click();
+  assert.equal(await page.locator('#city-arrival').isVisible(),true);
+  assert.match(await page.locator('#city-arrival').innerText(),/도시 개척/);
   assert.equal(await page.evaluate(()=>s.city),city+1);
   assert.equal(await page.evaluate(()=>RoyalRaids.available(s)),false);
   console.log('PASS expansion unlock, manual raid, controlled clear and next city');
