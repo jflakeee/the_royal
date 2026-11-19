@@ -1,0 +1,31 @@
+{
+  "source": "https://github.com/gamedev-skills/awesome-gamedev-agent-skills",
+  "revision": "c6ca6c41c839b68319ffc08430b99ab768debc32",
+  "license": "Apache-2.0",
+  "skills": [
+    "ai-behavior-trees-utility-ai",
+    "audio-design",
+    "camera-systems",
+    "create-game-assets",
+    "game-ai",
+    "game-docs",
+    "game-feel",
+    "game-ui-ux",
+    "input-systems",
+    "level-design",
+    "performance-optimization",
+    "procedural-gen",
+    "router",
+    "save-systems",
+    "shader-programming",
+    "survival-crafting",
+    "threejs-gltf-loading",
+    "threejs-materials-lighting",
+    "threejs-scene-setup",
+    "tower-defense"
+  ],
+  "upstreamFiles": 66,
+  "installPath": ".agents/skills",
+  "engine": "three.js r170",
+  "upstreamBaseline": "three.js r187"
+}
