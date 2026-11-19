@@ -59,7 +59,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  const activeGuards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!m.job&&!(m.raidStun>0));const guards=activeGuards.length;if(guards&&r.hunterFxCooldown<=0){const m=activeGuards[0];r.hunterFxCooldown=.28;events.push({kind:'hunterFx',from:{x:m.x,y:m.y},to:{x:a.x,y:a.y}})}
  const towerHit=towerDamage.get(a)||0;
  const defense=35*guards+towerHit;
- if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*35*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
+ if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*35*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated",type:a.type,at:{x:a.x,y:a.y}})}}
 }
 if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:towerFx.from,to:{x:towerFx.to.x,y:towerFx.to.y}})}}
 r.attackers=r.attackers.filter(a=>a.hp>0);
