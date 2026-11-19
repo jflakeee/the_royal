@@ -13,7 +13,7 @@ s.minions=s.minions.map(m=>{m.id=m.id||"m"+s.nextId++;m.hp=num(m.hp,100);m.maxHp
 s.objects=s.objects.map(o=>({...o,amount:num(o.amount),x:Number.isFinite(o.x)?o.x:100,y:Number.isFinite(o.y)?o.y:100}));return s}
 function canAfford(s,cost){return Object.keys(cost).every(k=>num(s.stock[k])>=cost[k])}
 function spend(s,cost){if(!canAfford(s,cost))return false;for(const k of Object.keys(cost))s.stock[k]-=cost[k];return true}
-function housing(s){return START_HOUSING+s.buildings.filter(b=>b.type==="hut").length*2}
+function housing(s){return normalizeLegacy(s.legacy).community+START_HOUSING+s.buildings.filter(b=>b.type==="hut").length*2}
 function living(s){return s.minions.filter(m=>m.status!=="dead").length}
 function recruit(s,resource="berry"){const cost=resource==="meat"?{meat:3}:{berry:5};if(living(s)>=housing(s)||!spend(s,cost))return false;let id="m"+s.nextId++;s.minions.push({id,x:415,y:265,hp:100,maxHp:100,status:"healthy",job:null,role:"general",gatherXp:0});return true}
 function recruitAvailable(s){let meat=0,berry=0;while(living(s)<housing(s)){if(recruit(s,"meat")){meat++;continue}if(recruit(s,"berry")){berry++;continue}break}return {meat,berry,total:meat+berry}}
@@ -25,12 +25,13 @@ function buildingPosition(b,index){
  const slots=[[-1,0],[1,0],[-1,1],[1,1],[0,1],[-2,0],[2,0],[-2,1],[2,1],[-1,2],[1,2],[0,2],[-2,-1],[2,-1],[0,-2]];
  const p=slots[index%slots.length];return {x:415+p[0]*52,y:265+p[1]*52};
 }
-function build(s,type){if(s.endingComplete||Math.max(s.buildings.length,s.cityLevel||0)>=CITY_BUILDING_LIMIT)return false;let cost=RECIPES[type];if(!cost||!spend(s,cost))return false;s.buildings.push({id:"b"+s.nextId++,type});s.cityLevel=s.buildings.length;return true}
+function buildCost(s,type){const base=RECIPES[type];if(!base)return null;const discount=normalizeLegacy(s.legacy).engineering*.03;return Object.fromEntries(Object.entries(base).map(([k,v])=>[k,Math.max(1,Math.ceil(v*(1-discount)-1e-9))]))}
+function build(s,type){if(s.endingComplete||Math.max(s.buildings.length,s.cityLevel||0)>=CITY_BUILDING_LIMIT)return false;let cost=buildCost(s,type);if(!cost||!spend(s,cost))return false;s.buildings.push({id:"b"+s.nextId++,type});s.cityLevel=s.buildings.length;return true}
 function migrationReady(s){return s.buildings.length>=8&&living(s)>=10&&s.buildings.some(b=>b.type==="clinic")&&s.buildings.some(b=>b.type==="plaza")&&s.minions.filter(m=>m.status==="healthy").length>=3}
 function nextBuilding(s){if(s.minions.some(m=>m.status==="critical"||m.status==="wounded")&&!s.buildings.some(b=>b.type==="clinic"))return "clinic";if(housing(s)<=living(s))return "hut";if(!s.buildings.some(b=>b.type==="clinic"))return "clinic";if(!s.buildings.some(b=>b.type==="warehouse"))return "warehouse";if(!s.buildings.some(b=>b.type==="plaza"))return "plaza";if(housing(s)<10)return "hut";if(!s.buildings.some(b=>b.type==="watchtower"))return "watchtower";return "hut"}
 function setRole(m,role){if(!m||!ROLES.includes(role))return false;m.role=role;return true}
 function gatherLevel(m){return 1+Math.floor(Math.sqrt(num(m.gatherXp)/5))}
-function gatherTime(m){return Math.max(.55,1.1-.08*(gatherLevel(m)-1))}
+function gatherTime(m,s){return Math.max(.55,1.1-.08*(gatherLevel(m)-1))/(1+normalizeLegacy(s?.legacy).arcane*.03)}
 function reservedNodes(s,except){return new Set([...s.minions.flatMap(n=>[n.job,n.pausedJob]),...s.queue].filter(j=>j&&j!==except&&j.phase!=="return"&&!j.got&&Number.isFinite(j.x)&&Number.isFinite(j.y)&&Number.isInteger(j.type)).map(j=>j.type+":"+j.x+":"+j.y))}
 function autoAssign(s,m){if(!m||m.job||m.status==="dead"||m.status==="critical"||s.autoGather===false)return false;const busy=reservedNodes(s);const nodes=s.objects.filter(o=>o.amount>0&&!busy.has(o.type+":"+o.x+":"+o.y));if(!nodes.length)return false;if(m.role==="hunter"||m.role==="builder")return false;const roleType=m.role==="healer"?2:ROLES.indexOf(m.role)-1;const focus=roleType>=0?roleType:Number.isInteger(s.gatherFocus)&&s.gatherFocus>=0&&s.gatherFocus<=3?s.gatherFocus:-1;nodes.sort((a,b)=>{const priority=(o)=>focus>=0&&o.type===focus?0:1;return priority(a)-priority(b)||Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(b.x-m.x,b.y-m.y)});const o=nodes[0];m.job={x:o.x,y:o.y,type:o.type,phase:"travel",progress:0,auto:true};return true}
 function autoBuild(s,m){if(!m||m.role!=="builder"||m.status!=="healthy"||m.job||s.autoGather===false)return false;return build(s,nextBuilding(s))}
@@ -43,5 +44,5 @@ function harvest(s,job){const o=s.objects.find(o=>o.x===job.x&&o.y===job.y&&o.ty
 function replenish(s,dt,rng=Math.random){for(const o of s.objects){if(o.amount>0){o.appear=Math.max(0,(o.appear||0)-dt);continue}if(o.amount>0)continue;o.regen=(Number.isFinite(o.regen)?o.regen:0)+dt;if(o.regen<(o.respawnDelay||15))continue;const oldX=o.x,oldY=o.y;for(let i=0;i<40;i++){const x=40+Math.floor(rng()*720),y=45+Math.floor(rng()*380);if(Math.hypot(x-oldX,y-oldY)<65||Math.hypot(x-415,y-265)<105||s.objects.some(p=>p!==o&&p.amount>0&&Math.hypot(p.x-x,p.y-y)<38))continue;o.x=x;o.y=y;break}if(o.x===oldX&&o.y===oldY)continue;o.amount=o.respawnAmount||4;o.regen=0;o.respawnDelay=0;o.appear=1}}
 function load(storage){let v3=storage.getItem("royal-save-v3");if(v3){try{return migrate(JSON.parse(v3))}catch(e){}}let v1=storage.getItem("royal-save-v1");if(v1){try{return migrate(JSON.parse(v1))}catch(e){}}return null}
 function save(storage,s){storage.setItem("royal-save-v3",JSON.stringify(migrate(s)))}
-root.RoyalCore={normalizeLegacy,inheritLegacy,LEGACY_MODES,CITY_BUILDING_LIMIT,cityCoverage,buildingPosition,RECIPES,RESPAWN_SECONDS,ROLES,setRole,reservedNodes,autoBuild,autoHeal,urgentHeal,resumeJob,autoHunt,gatherLevel,gatherTime,migrate,stock,canAfford,spend,housing,living,recruit,recruitAvailable,heal,build,nextBuilding,migrationReady,autoAssign,retarget,harvest,replenish,load,save};
+root.RoyalCore={buildCost,normalizeLegacy,inheritLegacy,LEGACY_MODES,CITY_BUILDING_LIMIT,cityCoverage,buildingPosition,RECIPES,RESPAWN_SECONDS,ROLES,setRole,reservedNodes,autoBuild,autoHeal,urgentHeal,resumeJob,autoHunt,gatherLevel,gatherTime,migrate,stock,canAfford,spend,housing,living,recruit,recruitAvailable,heal,build,nextBuilding,migrationReady,autoAssign,retarget,harvest,replenish,load,save};
 })(typeof globalThis!=="undefined"?globalThis:this);
