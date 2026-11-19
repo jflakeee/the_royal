@@ -1,0 +1,2 @@
+const assert=require('node:assert/strict');require('../raids.js');const R=globalThis.RoyalRaids;
+for(const kind of ['combat','rescue','retreat','gather']){const m={id:'m',x:415,y:265,status:'healthy',role:'hunter',job:{kind}};const s={city:1,cityLevel:15,stock:{},buildings:[],minions:[m]};R.spawn(s,'boss');const a=s.raids.attackers[0];Object.assign(a,{x:520,y:265,hp:100});R.tick(s,.1);assert.equal(a.hp,100);assert.equal(m.job.kind,kind);m.job=null;R.tick(s,.1);assert.equal(a.hp,96.5)}

@@ -17,7 +17,7 @@ if(before){r.stats??={towerDamage:0,hunterDamage:0,receivedDamage:0};r.battleTim
 function result(status){r.lastBattle={status,mode:r.mode,wave:r.wave,seconds:r.battleTime||0,defeated:r.defeated,stolen:r.stolen,wounded:(s.minions||[]).filter(m=>m.status==='wounded').length,critical:(s.minions||[]).filter(m=>m.status==='critical').length,...r.stats}}
 for(const m of s.minions||[]){if(m.role!=='hunter'||m.status!=='wounded'||m.job||m.raidStun>0)continue;const dx=415-m.x,dy=265-m.y,d=Math.hypot(dx,dy);if(d>5){const step=Math.min(d,65*dt*(m.raidSlow>0?.45:1));m.x+=dx/d*step;m.y+=dy/d*step}}
 const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').slice(0,6);
-const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter');
+const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter'&&!m.job);
 const towerDamage=new Map();
 let towerFx=null;
 for(let i=0;i<towers.length;i++){
@@ -54,7 +54,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
    }
   }
  }}
- const guards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!(m.raidStun>0)).length;
+ const guards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!m.job&&!(m.raidStun>0)).length;
  const towerHit=towerDamage.get(a)||0;
  const defense=35*guards+towerHit;
  if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*35*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
