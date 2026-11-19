@@ -5,14 +5,14 @@ const MODES={boss:{label:"👹 보스 몬스터",count:1,hp:1800,speed:12,damage
 const REWARDS={boss:24,raiders:28,mages:22,zombies:44};
 function available(s){const r=init(s);return (root.RoyalCore?.cityCoverage(s)??(Math.max(s.cityLevel||0,(s.buildings||[]).length)/15))>=1&&!r.attackers.length&&r.completedCity!==s.city&&!s.endingComplete}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
- r.wave++;r.battleTime=0;r.stats={towerDamage:0,hunterDamage:0,receivedDamage:0};r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
+ r.wave++;r.battleTime=0;r.stats={towerDamage:0,hunterDamage:0,receivedDamage:0};r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.hunterFxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
  r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+Math.max(1,r.wave-(r.failed||0))*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 const TOWER_RANGE=240;
 function towerPosition(b,i){if(Number.isFinite(b.x)&&Number.isFinite(b.y))return {x:b.x,y:b.y};const angle=i*Math.PI/3;return {x:415+Math.cos(angle)*60,y:265+Math.sin(angle)*60}}
 function tick(s,dt){const r=init(s),events=[];if(s.endingComplete)return events;dt=Math.max(0,Math.min(.1,Number(dt)||0));
 for(const m of s.minions||[]){if(m.raidSlow>0)m.raidSlow=Math.max(0,m.raidSlow-dt);if(m.raidStun>0)m.raidStun=Math.max(0,m.raidStun-dt)}
-const before=r.attackers.length;
+const before=r.attackers.length;r.hunterFxCooldown=Math.max(0,(r.hunterFxCooldown||0)-dt);
 if(before){r.stats??={towerDamage:0,hunterDamage:0,receivedDamage:0};r.battleTime=(Number(r.battleTime)||0)+dt}
 function result(status){r.lastBattle={status,mode:r.mode,wave:r.wave,seconds:r.battleTime||0,defeated:r.defeated,stolen:r.stolen,wounded:(s.minions||[]).filter(m=>m.status==='wounded').length,critical:(s.minions||[]).filter(m=>m.status==='critical').length,...r.stats}}
 for(const m of s.minions||[]){if(m.role!=='hunter'||m.status!=='wounded'||m.job||m.raidStun>0)continue;const dx=415-m.x,dy=265-m.y,d=Math.hypot(dx,dy);if(d>5){const step=Math.min(d,65*dt*(m.raidSlow>0?.45:1));m.x+=dx/d*step;m.y+=dy/d*step}}
@@ -56,7 +56,7 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
    }
   }
  }}
- const guards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!m.job&&!(m.raidStun>0)).length;
+ const activeGuards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!m.job&&!(m.raidStun>0));const guards=activeGuards.length;if(guards&&r.hunterFxCooldown<=0){const m=activeGuards[0];r.hunterFxCooldown=.28;events.push({kind:'hunterFx',from:{x:m.x,y:m.y},to:{x:a.x,y:a.y}})}
  const towerHit=towerDamage.get(a)||0;
  const defense=35*guards+towerHit;
  if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*35*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
