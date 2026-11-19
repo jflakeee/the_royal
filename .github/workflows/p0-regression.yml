@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/raid-persistence-p0.test.cjs
+      - run: node --test tests/*.test.cjs
       - run: npm install --no-save @playwright/test@1.51.1
       - run: npx playwright install --with-deps chromium
       - run: |
