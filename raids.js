@@ -6,7 +6,7 @@ const REWARDS={boss:24,raiders:28,mages:22,zombies:44};
 function available(s){const r=init(s);return (root.RoyalCore?.cityCoverage(s)??(Math.max(s.cityLevel||0,(s.buildings||[]).length)/15))>=1&&!r.attackers.length&&r.completedCity!==s.city&&!s.endingComplete}
 function spawn(s,mode){const r=init(s),spec=MODES[mode];if(!spec||!available(s))return null;
  r.wave++;r.battleTime=0;r.stats={towerDamage:0,hunterDamage:0,receivedDamage:0};r.mode=mode;r.stolen=0;r.defeated=0; r.fxCooldown=0;r.lootBudget=Math.ceil(RESOURCE_KEYS.reduce((sum,k)=>sum+Math.max(0,Number(s.stock?.[k])||0),0)*.15);const count=spec.count;
- r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+r.wave*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
+ r.attackers=Array.from({length:count},(_,i)=>{const angle=2*Math.PI*i/count;return {id:mode+"-"+r.wave+"-"+i,type:mode,x:415+Math.cos(angle)*550,y:265+Math.sin(angle)*410,hp:spec.hp+Math.max(1,r.wave-(r.failed||0))*3,cooldown:0,element:mode==="mages"?["fire","water","wind","earth","lightning"][i%5]:null}});
  return {kind:"start",wave:r.wave,count,mode,label:spec.label}}
 const TOWER_RANGE=240;
 function towerPosition(b,i){if(Number.isFinite(b.x)&&Number.isFinite(b.y))return {x:b.x,y:b.y};const angle=i*Math.PI/3;return {x:415+Math.cos(angle)*60,y:265+Math.sin(angle)*60}}
