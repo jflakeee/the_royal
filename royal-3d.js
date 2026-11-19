@@ -116,6 +116,7 @@ function syncZombies(list){
  zombieBatch.instanceMatrix.needsUpdate=true;
 }
 const cityBuildings=new THREE.Group();actors.add(cityBuildings);
+const buildingBatch=new THREE.Group();actors.add(buildingBatch);function rebuildBuildingBatch(){for(const mesh of [...buildingBatch.children]){buildingBatch.remove(mesh);mesh.dispose()}const groups=new Map();cityBuildings.updateMatrixWorld(true);cityBuildings.traverse(o=>{if(!o.isMesh)return;if(!groups.has(o.material))groups.set(o.material,[]);groups.get(o.material).push(o.matrixWorld.clone())});for(const [material,matrices] of groups){const mesh=new THREE.InstancedMesh(box,material,matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;buildingBatch.add(mesh)}cityBuildings.visible=false}
 let buildingSignature='';
 const roofMat=mat(0x995f43),clinicMat=mat(0xd5d1b8),crossMat=mat(0xbd4141);
 function syncBuildings(s){
@@ -131,6 +132,7 @@ function syncBuildings(s){
   else if(b.type==='plaza'){cube(g,0,.2,0,5,.4,5,edge);cube(g,0,1,0,1.5,1.6,1.5,gold)}
   else{const wide=b.type==='warehouse'?5:3.6;cube(g,0,1.4,0,wide,2.8,3.2,b.type==='clinic'?clinicMat:wood);cube(g,0,3,0,wide+.5,.6,3.8,roofMat);cube(g,0,1,-1.65,.85,2,.15,stone);if(b.type==='clinic'){cube(g,0,3.4,0,1.5,.18,.45,crossMat);cube(g,0,3.4,0,.45,.18,1.5,crossMat)}}
  }
+ rebuildBuildingBatch();
 }
 function sync(){const s=state();if(!s)return;syncBuildings(s);const current=s.objects.filter(o=>o.amount>0);const signature=current.map(o=>[o.type,o.x,o.y].join(':')).join('|');if(signature!==resourceSignature){resourceObjects.forEach(g=>actors.remove(g));resourceObjects=current.map(resource);rebuildResourceBatch();resourceSignature=signature}const live=s.minions.filter(m=>m.status!=='dead');while(minionObjects.length>live.length){actors.remove(minionObjects.pop())}live.forEach((m,i)=>{if(!minionObjects[i])minionObjects[i]=minion(m);const [x,z]=xy(m.x,m.y);minionObjects[i].position.set(x,1.85,z)});const animals=(s.animals||[]).filter(a=>a.hp>0);while(animalObjects.length>animals.length)actors.remove(animalObjects.pop());animals.forEach((a,i)=>{if(!animalObjects[i])animalObjects[i]=character('animal');const [x,z]=xy(a.x,a.y);animalObjects[i].position.set(x,1.7,z)});const allRaiders=s.raids?.attackers||[],maxZombie=(globalThis.RoyalRaids?.MODES.zombies.hp||24)+Math.max(1,(s.raids?.wave||0)-(s.raids?.failed||0))*3;const raiders=allRaiders.filter(r=>r.type!=='zombies'||r.hp<maxZombie);syncZombies(allRaiders.filter(r=>r.type==='zombies'&&r.hp>=maxZombie));while(raiderObjects.length>raiders.length)actors.remove(raiderObjects.pop());raiders.forEach((r,i)=>{if(!raiderObjects[i]){raiderObjects[i]=new THREE.Group();const body=new THREE.Sprite(raidMaterial(r)),bar=new THREE.Sprite(raidBarMaterial(1));raiderObjects[i].add(body,bar);actors.add(raiderObjects[i])}const group=raiderObjects[i],sprite=group.children[0],bar=group.children[1];sprite.material=raidMaterial(r);const size=r.type==='boss'?2.4:r.type==='zombies'?.78:1;sprite.scale.set(2.5*size,3.75*size,1);sprite.position.set(0,1.85*size,0);const max=(globalThis.RoyalRaids?.MODES[r.type]?.hp||r.hp)+Math.max(1,(s.raids.wave||0)-(s.raids.failed||0))*3;bar.material=raidBarMaterial(r.hp/max);bar.scale.set(2.2*size,.32*size,1);bar.position.set(0,3.9*size,0);bar.visible=r.type!=='zombies'||r.hp<max;const [x,z]=xy(r.x,r.y);group.position.set(x,0,z)});}
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
@@ -138,7 +140,7 @@ const pointers=new Map();let pinchDistance=0;const clampFocus=()=>{const limit=5
 window.royal3DCamera=()=>({x:focus.x,z:focus.z,zoom,mapLevel});
 window.royal3DNextMap=()=>{if(transition)return;
  const oldActors=new THREE.Group();scene.add(oldActors);
- oldActors.add(cityBuildings.clone(true));for(const g of resourceObjects){const copy=g.clone(true);copy.visible=true;oldActors.add(copy)}
+ const oldBuildings=cityBuildings.clone(true);oldBuildings.visible=true;oldActors.add(oldBuildings);for(const g of resourceObjects){const copy=g.clone(true);copy.visible=true;oldActors.add(copy)}
  for(const sprite of minionObjects)oldActors.add(sprite.clone());
  for(const sprite of animalObjects)oldActors.add(sprite.clone());
  actors.visible=false;
