@@ -17,6 +17,8 @@ if(before){r.stats??={towerDamage:0,hunterDamage:0,receivedDamage:0};r.battleTim
 function result(status){r.lastBattle={status,mode:r.mode,wave:r.wave,seconds:r.battleTime||0,defeated:r.defeated,stolen:r.stolen,wounded:(s.minions||[]).filter(m=>m.status==='wounded').length,critical:(s.minions||[]).filter(m=>m.status==='critical').length,...r.stats}}
 for(const m of s.minions||[]){if(m.role!=='hunter'||m.status!=='wounded'||m.job||m.raidStun>0)continue;const dx=415-m.x,dy=265-m.y,d=Math.hypot(dx,dy);if(d>5){const step=Math.min(d,65*dt*(m.raidSlow>0?.45:1));m.x+=dx/d*step;m.y+=dy/d*step}}
 const towers=(s.buildings||[]).filter(b=>b.type==='watchtower').slice(0,6);
+// Only interrupt uncollected automatic gathering; keep manual orders and cargo intact.
+if(before)for(const m of s.minions||[]){const j=m.job;if(m.role==='hunter'&&m.status==='healthy'&&!(m.raidStun>0)&&!m.pausedJob&&j&&!j.kind&&j.auto===true&&!j.got&&['travel','gather'].includes(j.phase)){m.pausedJob={...j,phase:'travel',progress:0};m.job=null}}
 const hunters=(s.minions||[]).filter(m=>m.status==='healthy'&&m.role==='hunter'&&!m.job);
 const towerDamage=new Map();
 let towerFx=null;
