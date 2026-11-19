@@ -119,6 +119,8 @@ const assert = require('node:assert/strict');
   const city=await page.evaluate(()=>{const city=s.city;s.buildings.push({id:'test-tower',type:'watchtower'});s.raids.attackers[0].x=475;s.raids.attackers[0].y=265;s.raids.attackers[0].hp=.01;update(.1);return city});
   await page.waitForFunction(()=>s.endingComplete);
   assert.equal(await page.evaluate(()=>s.raids.completedCity),city);
+  assert.equal(await page.locator('#city-ending .battle-feedback[data-status="clear"]').count(),1);
+  assert.equal(await page.locator('#city-ending .battle-share').getAttribute('aria-label'),'감시탑 100%, 사냥꾼 0%');
   const victoryStock=await page.evaluate(()=>({...s.stock}));
   await page.reload();
   await page.waitForFunction(()=>window.royal3DState?.()?.endingComplete===true);
