@@ -121,6 +121,8 @@ const assert = require('node:assert/strict');
   assert.equal(await page.evaluate(()=>s.raids.completedCity),city);
   assert.equal(await page.locator('#city-ending .battle-feedback[data-status="clear"]').count(),1);
   assert.equal(await page.locator('#city-ending .battle-share').getAttribute('aria-label'),'감시탑 100%, 사냥꾼 0%');
+  assert.equal(await page.locator('#city-ending .raid-rewards span').count(),2);
+  assert.match(await page.locator('#city-ending .raid-rewards').innerText(),/목재 \+24/);
   const victoryStock=await page.evaluate(()=>({...s.stock}));
   await page.reload();
   await page.waitForFunction(()=>window.royal3DState?.()?.endingComplete===true);

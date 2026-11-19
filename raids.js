@@ -65,7 +65,7 @@ if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.
 r.attackers=r.attackers.filter(a=>a.hp>0);
 if(before>0&&!r.attackers.length){r.completed=(r.completed||0)+1;r.completedCity=s.city;
  const reward=(REWARDS[r.mode]||8)+Math.max(0,r.wave-1-(r.failed||0))*2;
- if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
+ if(!r.lastRewardedWave||r.lastRewardedWave<r.wave){r.lastRewardedWave=r.wave;r.lastReward={wave:r.wave,wood:reward,stone:Math.ceil(reward/2)};s.stock.wood=(s.stock.wood||0)+reward;s.stock.stone=(s.stock.stone||0)+Math.ceil(reward/2);events.push({kind:"reward",wood:reward,stone:Math.ceil(reward/2)})}
  result("clear");events.push({kind:"clear",mode:r.mode,wave:r.wave,defeated:r.defeated,stolen:r.stolen})}
 if(r.attackers.length){if(r.battleTime>=300){r.failed=(r.failed||0)+1;r.attackers=[];result('failed');events.push({kind:'failed',mode:r.mode,wave:r.wave,stolen:r.stolen})}}
 return events}
