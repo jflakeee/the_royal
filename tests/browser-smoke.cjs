@@ -85,6 +85,18 @@ const assert = require('node:assert/strict');
   assert.ok(dimensions.width>=380&&dimensions.height>=840,'3D canvas should fill the mobile viewport');
   const perf=await page.evaluate(()=>window.royal3DPerf());
   assert.ok(perf.samples>0&&Number.isFinite(perf.averageMs)&&perf.drawCalls>0,'3D renderer must produce frames');
+  // Exercise the actual renderer pool across repeated bursts, including mixed materials.
+  for(let round=0;round<3;round++){
+    const burst=await page.evaluate(()=>{for(let i=0;i<20;i++)window.royal3DRaidFx({kind:'defeated',type:'boss',at:{x:415,y:265}});return window.royal3DFxStats()});
+    assert.equal(burst.active,40);assert.equal(burst.allocated,40);
+    await page.waitForFunction(()=>window.royal3DFxStats().active===0,null,{timeout:15000});
+    const drained=await page.evaluate(()=>window.royal3DFxStats());
+    assert.deepEqual(drained,{active:0,pooled:40,allocated:40});
+    const reused=await page.evaluate(()=>{window.royal3DRaidFx({kind:'hunterFx',from:{x:400,y:265},to:{x:450,y:265}});return window.royal3DFxStats()});
+    assert.deepEqual(reused,{active:1,pooled:39,allocated:40});
+    await page.waitForFunction(()=>window.royal3DFxStats().active===0,null,{timeout:15000});
+  }
+  console.log('PASS raid particle pool: bounded allocation and repeated reuse');
   const candidate=await page.evaluate(()=>window.royal3DVisibleResources().find(o=>o.type===0)||window.royal3DVisibleResources()[0]);
   assert.ok(candidate,'at least one resource must be visible');
   await page.evaluate(()=>{s.minions.forEach(m=>m.job=null);s.queue=[];s.autoGather=false});
