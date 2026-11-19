@@ -1,0 +1,9 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+require('../game-core.js');
+const C=globalThis.RoyalCore;
+function state(extra={}){return C.migrate({city:1,stock:{wood:100,stone:100},minions:[],objects:[],...extra})}
+test('legacy defaults and caps',()=>{assert.deepEqual(state().legacy,{valor:0,engineering:0,arcane:0,community:0});assert.equal(state({legacy:{valor:99}}).legacy.valor,10)});
+test('all modes inherit once from cleared city',()=>{for(const [mode,key] of Object.entries(C.LEGACY_MODES)){const old=state({endingComplete:true,raids:{completedCity:1,lastBattle:{mode,status:'clear'}}}),next=state({city:2});C.inheritLegacy(old,next);C.inheritLegacy(old,next);assert.equal(next.legacy[key],1);old.raids.lastBattle.status='failed';C.inheritLegacy(old,next);assert.equal(next.legacy[key],0)}});
+test('fractional discount accumulates only after success',()=>{const s=state({legacy:{engineering:3}});assert.deepEqual(C.buildCost(s,'hut'),{wood:5,stone:2});assert.equal(s.legacyCredit.wood,0);for(let i=0;i<10;i++)assert.ok(C.build(s,'hut'));assert.equal(s.stock.wood,54);assert.equal(s.stock.stone,81);assert.deepEqual(s.legacyCredit,{wood:50,stone:80});s.stock.wood=0;const before=JSON.stringify(s.legacyCredit);assert.equal(C.build(s,'hut'),false);assert.equal(JSON.stringify(s.legacyCredit),before)});
+test('credit persists across save and migration',()=>{const s=state({legacy:{engineering:1}});C.build(s,'hut');const db=new Map(),storage={getItem:k=>db.get(k)||null,setItem:(k,v)=>db.set(k,v)};C.save(storage,s);const old=C.load(storage),next=state({city:2});C.inheritLegacy(old,next);assert.deepEqual(next.legacyCredit,{wood:15,stone:6});assert.equal(next.legacy.engineering,1)});
+test('housing and gathering reflect legacy',()=>{const s=state({legacy:{community:10,arcane:10}});assert.equal(C.housing(s),13);assert.ok(Math.abs(C.gatherTime({},s)-1.1/1.3)<1e-9)});
