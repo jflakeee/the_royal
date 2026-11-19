@@ -26,11 +26,12 @@ for(let i=0;i<towers.length;i++){
  for(const a of r.attackers){if(a.hp<=0||a.hp<=(towerDamage.get(a)||0)*dt)continue;const d=(a.x-t.x)**2+(a.y-t.y)**2;if(d<dist){best=a;dist=d}}
  if(best){towerDamage.set(best,(towerDamage.get(best)||0)+24);if(!towerFx)towerFx={from:t,to:best}}
 }
+const hunterDamage=35*(1+(root.RoyalCore?.normalizeLegacy(s.legacy).valor||0)*.05);
 const hunterTargets=new Map();
 for(const m of hunters){
  if(m.raidStun>0)continue;
  let best=null,dist=Infinity;
- for(const a of r.attackers){if(a.hp<=0||a.hp<=((towerDamage.get(a)||0)+35*(hunterTargets.get(a)?.length||0))*dt)continue;const d=(m.x-a.x)**2+(m.y-a.y)**2;if(d<dist){best=a;dist=d}}
+ for(const a of r.attackers){if(a.hp<=0||a.hp<=((towerDamage.get(a)||0)+hunterDamage*(hunterTargets.get(a)?.length||0))*dt)continue;const d=(m.x-a.x)**2+(m.y-a.y)**2;if(d<dist){best=a;dist=d}}
  if(best&&!m.job){const dx=best.x-m.x,dy=best.y-m.y,d=Math.hypot(dx,dy);if(d>115){const step=Math.min(d-115,65*dt*(m.raidSlow>0?.45:1));m.x=Math.max(20,Math.min(780,m.x+dx/d*step));m.y=Math.max(20,Math.min(460,m.y+dy/d*step))}}
  if(best&&(m.x-best.x)**2+(m.y-best.y)**2<22500){if(!hunterTargets.has(best))hunterTargets.set(best,[]);hunterTargets.get(best).push(m)}
 }
@@ -56,8 +57,8 @@ for(const a of r.attackers){if(a.hp<=0)continue;const spec=MODES[a.type]||MODES.
  }}
  const guards=(hunterTargets.get(a)||[]).filter(m=>m.status==='healthy'&&!(m.raidStun>0)).length;
  const towerHit=towerDamage.get(a)||0;
- const defense=35*guards+towerHit;
- if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*35*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
+ const defense=hunterDamage*guards+towerHit;
+ if(defense>0){const actual=Math.min(a.hp,defense*dt);r.stats.towerDamage+=actual*towerHit/defense;r.stats.hunterDamage+=actual*hunterDamage*guards/defense;a.hp-=defense*dt;if(a.hp<=0){r.defeated++;events.push({kind:"defeated"})}}
 }
 if(towerFx){r.fxCooldown=(r.fxCooldown||0)-dt;if(r.fxCooldown<=0){r.fxCooldown=.35;events.push({kind:"towerFx",from:towerFx.from,to:{x:towerFx.to.x,y:towerFx.to.y}})}}
 r.attackers=r.attackers.filter(a=>a.hp>0);
