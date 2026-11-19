@@ -114,6 +114,10 @@ const assert = require('node:assert/strict');
   assert.equal(wavePerf.count,180);
   assert.ok(wavePerf.drawCalls>0&&Number.isFinite(wavePerf.p95Ms)&&wavePerf.samples>0);
   await page.evaluate(()=>{Object.assign(s,window.royalPerfFixture);delete window.royalPerfFixture});
+  // Expanded city fixture: 15 buildings and 24 minions, isolated from progression state.
+  const expanded=await page.evaluate(async()=>{const old={buildings:s.buildings,minions:s.minions,autoGather:s.autoGather};try{s.autoGather=false;s.buildings=Array.from({length:15},(_,i)=>({id:'perf-'+i,type:'watchtower'}));s.minions=Array.from({length:24},(_,i)=>({...old.minions[0],id:'perf-m-'+i,x:280+(i%6)*40,y:180+Math.floor(i/6)*40,job:null,status:'healthy'}));await new Promise(r=>setTimeout(r,4000));return {buildings:s.buildings.length,minions:s.minions.length,...window.royal3DPerf()}}finally{Object.assign(s,old);save()}});
+  console.log('INFO expanded city performance',JSON.stringify(expanded));
+  assert.equal(expanded.buildings,15);assert.equal(expanded.minions,24);
   // Final defense: use a controlled state and a low-HP enemy to test progression,
   // not the full combat balance or real-time duration.
   await page.setViewportSize({width:390,height:844});
