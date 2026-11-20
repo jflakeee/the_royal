@@ -16,12 +16,22 @@ jobs:
       - run: node --test tests/*.test.cjs
       - run: npm install --no-save @playwright/test@1.51.1
       - run: npx playwright install --with-deps chromium
-      - run: |
+      - name: Run browser regression with server readiness check
+        run: |
           python3 -m http.server 8080 > /tmp/royal-server.log 2>&1 &
-          npx playwright test tests/browser-save-p0.spec.cjs tests/browser-perf.spec.cjs tests/browser-autoplay.spec.cjs tests/browser-migration.spec.cjs --workers=1
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:8080/; then break; fi
+            sleep 1
+          done
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/
+          npx playwright test tests/browser-save-p0.spec.cjs tests/browser-perf.spec.cjs tests/browser-autoplay.spec.cjs tests/browser-migration.spec.cjs --workers=1 --reporter=line,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: p0-browser-results
-          path: test-results/
+          path: |
+            test-results/
+            /tmp/royal-server.log
           if-no-files-found: ignore
