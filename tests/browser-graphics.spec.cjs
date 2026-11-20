@@ -16,7 +16,8 @@ test('graphics preference persists without changing game save',async({page})=>{
  expect(await page.evaluate(()=>window.royal3DPerf().pixelRatio)).toBeLessThanOrEqual(.65);
  expect(await page.evaluate(()=>{const s=window.royal3DState();return {city:s.city,history:s.history.length,legacy:{...s.legacy}}})).toEqual(initial);
  await page.reload();
- await expect.poll(()=>page.evaluate(()=>window.royal3DPerf?.().qualityMode)).toBe('performance');
+ await expect.poll(()=>page.evaluate(()=>window.royal3DPerf?.().qualityMode&&document.getElementById('writer-panel')&&getComputedStyle(document.getElementById('writer-panel')).display==='none')).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.royal3DPerf().qualityMode)).toBe('performance');
  await page.locator('#game-settings').evaluate(el=>el.open=true);
  await expect(setting).toHaveValue('performance');
  await setting.selectOption('quality');
