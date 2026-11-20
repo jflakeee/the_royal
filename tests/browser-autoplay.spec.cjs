@@ -9,7 +9,7 @@ test('automatic play survives repeated saves and reloads',async({page},info)=>{
  const total=s=>Object.values(s.collected).reduce((n,v)=>n+v,0);
  const samples=[];
  await page.goto(url);
- await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&typeof window.royal3DPerf==='function'),{timeout:30000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&typeof window.royal3DPerf==='function'&&document.querySelector('[role="alert"]')?.style.display==='none'),{timeout:30000}).toBe(true);
  const start=await read();
  for(let round=0;round<3;round++){
   await page.waitForTimeout(30000);
