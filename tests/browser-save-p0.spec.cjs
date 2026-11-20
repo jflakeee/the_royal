@@ -8,7 +8,8 @@ test('second tab cannot overwrite active writer',async({page,context})=>{
  const other=await context.newPage();await other.goto(url);
  await expect(other.getByText(/다른 탭에서 게임이 실행 중입니다/)).toBeVisible();
  await page.close();await other.reload();
- await expect(other.getByRole('button',{name:'다시 접속',exact:true})).toBeHidden();
+ await expect.poll(()=>other.evaluate(()=>typeof window.royal3DState==='function'&&document.getElementById('writer-panel')!==null&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);
+ await expect.poll(()=>other.evaluate(k=>!!localStorage.getItem(k),key)).toBe(true);
 });
 test('failed write pauses simulation and retry persists state',async({page})=>{
  await page.addInitScript(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='royal-save-v3'&&window.failSave)throw new DOMException('injected','QuotaExceededError');return original.call(this,k,v)}});
