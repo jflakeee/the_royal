@@ -24,7 +24,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent --output /dev/null http://127.0.0.1:8080/
-          npx playwright test tests/browser-save-p0.spec.cjs tests/browser-perf.spec.cjs tests/browser-autoplay.spec.cjs tests/browser-migration.spec.cjs --workers=1 --reporter=line,junit
+          npx playwright test tests/browser-save-p0.spec.cjs tests/browser-perf.spec.cjs tests/browser-autoplay.spec.cjs tests/browser-migration.spec.cjs tests/browser-graphics.spec.cjs --workers=1 --reporter=line,junit
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/junit.xml
       - uses: actions/upload-artifact@v4
