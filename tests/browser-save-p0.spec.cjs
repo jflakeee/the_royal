@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const url='http://127.0.0.1:8080/';
 const key='royal-save-v3';
-async function ready(page){await page.goto(url);await expect(page.getByText('저장 권한 확인 중…',{exact:true})).toBeHidden();await expect.poll(()=>page.evaluate(()=>!!window.royal3DState)).toBe(true);}
+async function ready(page){await page.goto(url);await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&document.getElementById('writer-panel')!==null&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);}
 test('second tab cannot overwrite active writer',async({page,context})=>{
  await ready(page);
  await expect.poll(()=>page.evaluate(k=>!!localStorage.getItem(k),key)).toBe(true);
