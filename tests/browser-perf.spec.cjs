@@ -4,7 +4,7 @@ test('mobile raid stress keeps visual pools bounded',async({page},info)=>{
  test.setTimeout(90000);
  await page.setViewportSize({width:390,height:844});
  await page.goto('http://127.0.0.1:8080/');
- await expect.poll(()=>page.evaluate(()=>typeof window.royal3DPerf==='function'),{timeout:30000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>typeof window.royal3DPerf==='function'&&document.querySelector('[role="alert"]')?.style.display==='none'),{timeout:30000}).toBe(true);
  const samples=[];
  for(let round=0;round<3;round++){
   await page.evaluate(()=>{const s=window.royal3DState();s.endingComplete=false;s.cityLevel=15;s.raids.attackers=[];delete s.raids.completedCity;globalThis.RoyalRaids.spawn(s,'zombies');for(const a of s.raids.attackers)a.hp=10;});
