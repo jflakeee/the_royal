@@ -2,7 +2,7 @@ const {test,expect}=require('@playwright/test');
 const url='http://127.0.0.1:8080/';
 async function ready(page){
  await page.goto(url);
- await expect.poll(()=>page.evaluate(()=>typeof window.royal3DPerf==='function'&&document.querySelector('[role="alert"]')?.style.display==='none'),{timeout:30000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>typeof window.royal3DPerf==='function'&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);
 }
 test('graphics preference persists without changing game save',async({page})=>{
  await page.setViewportSize({width:390,height:844});
