@@ -38,7 +38,7 @@ jobs:
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           report = Path('test-results/junit.xml')
           if not report.exists():
-              output.open('a').write('## Browser regression\\n\\nJUnit report missing; inspect preceding steps and logs.\\n')
+              output.open('a').write('## Browser regression\n\nJUnit report missing; inspect preceding steps and logs.\n')
           else:
               root = ET.parse(report).getroot()
               cases = root.findall('.//testcase')
@@ -47,7 +47,7 @@ jobs:
               lines = ['## Browser regression', '', f'Total: {len(cases)} | Failed: {len(failed)} | Skipped: {len(skipped)}', '']
               for case in failed:
                   lines.append(f'- FAIL: {case.get("classname", "")} / {case.get("name", "")}')
-              output.open('a').write('\\n'.join(lines) + '\\n')
+              output.open('a').write('\n'.join(lines) + '\n')
           PY
       - name: Preserve web server logs
         if: always()
