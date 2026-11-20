@@ -17,7 +17,7 @@ test('automatic play survives repeated saves and reloads',async({page},info)=>{
   expect(before.saved).toBe(true);
   for(const v of Object.values(before.stock))expect(Number.isFinite(v)&&v>=0).toBe(true);
   await page.reload();
-  await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&typeof window.royal3DPerf==='function'),{timeout:30000}).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&typeof window.royal3DPerf==='function'&&document.getElementById('writer-panel')!==null&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);
   const after=await read();samples.push({round,phase:'after',...after});
   expect(after.city).toBe(before.city);
   expect(total(after)).toBeGreaterThanOrEqual(total(before));
