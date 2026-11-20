@@ -10,8 +10,11 @@ test('ten sequential city migrations preserve legacy and history after reload',a
   const after=await page.evaluate(()=>{const s=window.royal3DState();return {city:s.city,history:s.history.length,valor:s.legacy.valor}});
   expect(after.history).toBe(before.history+1);
   expect(after.valor).toBe(Math.min(10,before.valor+1));
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('royal-save-v3')||'null')?.city)).toBe(after.city);
   await page.reload();
-  await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'),{timeout:30000}).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&document.getElementById('writer-panel')&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);
+  expect(await page.evaluate(()=>window.royal3DState().city)).toBe(after.city);
+  expect(await page.evaluate(()=>window.royal3DState().history.length)).toBe(after.history);
   expect(await page.evaluate(()=>window.royal3DState().legacy.valor)).toBe(after.valor);
  }
 });
