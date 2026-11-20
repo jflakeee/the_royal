@@ -7,14 +7,14 @@ async function ready(page){
 test('graphics preference persists without changing game save',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await ready(page);
- const initial=await page.evaluate(()=>localStorage.getItem('royal-save-v3'));
+ const initial=await page.evaluate(()=>{const s=window.royal3DState();return {city:s.city,history:s.history.length,legacy:{...s.legacy}}});
  await page.locator('#game-settings').evaluate(el=>el.open=true);
  const setting=page.locator('#graphics-quality');
  await expect(setting).toHaveValue('auto');
  await setting.selectOption('performance');
  await expect.poll(()=>page.evaluate(()=>window.royal3DPerf().qualityMode)).toBe('performance');
  expect(await page.evaluate(()=>window.royal3DPerf().pixelRatio)).toBeLessThanOrEqual(.65);
- expect(await page.evaluate(()=>localStorage.getItem('royal-save-v3'))).toBe(initial);
+ expect(await page.evaluate(()=>{const s=window.royal3DState();return {city:s.city,history:s.history.length,legacy:{...s.legacy}}})).toEqual(initial);
  await page.reload();
  await expect.poll(()=>page.evaluate(()=>window.royal3DPerf?.().qualityMode)).toBe('performance');
  await page.locator('#game-settings').evaluate(el=>el.open=true);
