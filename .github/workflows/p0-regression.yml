@@ -28,6 +28,27 @@ jobs:
           npx playwright test tests/browser-save-p0.spec.cjs tests/browser-perf.spec.cjs tests/browser-autoplay.spec.cjs tests/browser-migration.spec.cjs tests/browser-graphics.spec.cjs --workers=1 --reporter=line,junit --trace=retain-on-failure --screenshot=only-on-failure
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/junit.xml
+      - name: Publish regression summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          output = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          report = Path('test-results/junit.xml')
+          if not report.exists():
+              output.open('a').write('## Browser regression\\n\\nJUnit report missing; inspect preceding steps and logs.\\n')
+          else:
+              root = ET.parse(report).getroot()
+              cases = root.findall('.//testcase')
+              failed = [case for case in cases if case.find('failure') is not None or case.find('error') is not None]
+              skipped = [case for case in cases if case.find('skipped') is not None]
+              lines = ['## Browser regression', '', f'Total: {len(cases)} | Failed: {len(failed)} | Skipped: {len(skipped)}', '']
+              for case in failed:
+                  lines.append(f'- FAIL: {case.get("classname", "")} / {case.get("name", "")}')
+              output.open('a').write('\\n'.join(lines) + '\\n')
+          PY
       - name: Preserve web server logs
         if: always()
         run: |
