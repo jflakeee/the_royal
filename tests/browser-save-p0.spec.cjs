@@ -22,7 +22,10 @@ test('failed write pauses simulation and retry persists state',async({page})=>{
  await page.evaluate(()=>{window.failSave=false});await page.locator('#retry-save').click();
  await expect(page.locator('#save-warning')).toBeHidden();
  expect(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).autoGather,key)).toBe(before);
- await page.reload();await expect.poll(()=>page.evaluate(()=>window.royal3DState?.().autoGather)).toBe(before);
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>typeof window.royal3DState==='function'&&document.getElementById('writer-panel')!==null&&getComputedStyle(document.getElementById('writer-panel')).display==='none'),{timeout:30000}).toBe(true);
+ expect(await page.evaluate(()=>window.royal3DState().autoGather)).toBe(before);
+ expect(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).autoGather,key)).toBe(before);
 });
 
 test('mobile legacy preview and migration persist across reload',async({page})=>{
